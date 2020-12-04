@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Boostrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"
+        integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <script src="./js/libs/vue.min.js"></script>
+    <script type="text/javascript" src="./eel.js"></script>
+
+    <title>BJL模擬</title>
+
+    <style>
+        .card-holder {
+            width: 100%;
+            height: auto;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            /* justify-content: center; */
+            /* align-items: center; */
+        }
+
+        .card {
+            width: 5%;
+            height: auto;
+        }
+
+        .card-image {
+            width: 100%;
+            height: auto;
+        }
+
+        .button-holder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem 0;
+        }
+
+        .page-btn {
+            margin: 0 0.2rem;
+        }
+
+        .road-holder {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">百家樂模擬</a>
+    </nav>
+    <div id="app" class="container-fluid" style="margin-top: 20px;">
+
+        <div class="row" style="margin: 20px 0;">
+            <div class="col-1">
+                <button id="shuffled" class="btn btn-primary" v-on:click="getData">生成牌組</button>
+            </div>
+
+        </div>
+        <div class="row" style="margin: 20px 0;">
+            <div class="col-1" style="margin-right: 0; padding-right: 0">
+                <input v-model="cutPosition" type="text" id="cutPosition" class="form-control" placeholder="切牌位置 2~415"
+                    v-on:keyup.enter="getRoad">
+            </div>
+            <div class="col-1">
+                <button id="starts" class="btn btn-primary" v-on:click="getRoad">切牌生路</button>
+            </div>
+        </div>
+
+
+        <div v-if="!isLoading">
+
+            <div class="card-holder">
+                <div v-for="(card, index) in showedCard" :key="index" class="card">
+                    <img class="card-img" :src=`./image/${card}.png`> </div> </div> <div class="button-holder">
+                    <button type="button" class="btn btn-primary btn-sm page-btn"
+                        v-on:click="()=>{this.showedPage=0}">1</button>
+                    <button type="button" class="btn btn-primary btn-sm page-btn"
+                        v-on:click="()=>{this.showedPage=1}">2</button>
+                    <button type="button" class="btn btn-primary btn-sm page-btn"
+                        v-on:click="()=>{this.showedPage=2}">3</button>
+                    <button type="button" class="btn btn-primary btn-sm page-btn"
+                        v-on:click="()=>{this.showedPage=3}">4</button>
+                    <button type="button" class="btn btn-primary btn-sm page-btn"
+                        v-on:click="()=>{this.showedPage=4}">5</button>
+                </div>
+                <div class="road-holder">
+                    <svg id="roadmap" width="1200" height="800"></svg>
+                </div>
+
+            </div>
+
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+            integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous">
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+            integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous">
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js"
+            integrity="sha384-w1Q4orYjBQndcko6MimVbzY0tgp4pWB4lZ7lr30WKz0vr/aWKhXdBNmNb5D92v7s" crossorigin="anonymous">
+        </script>
+        <script src="./js/libs/d3.min.js"></script>
+        <script>
+            var app = new Vue({
+                el: '#app',
+                data: {
+                    message: 'vue is ready',
+                    isLoading: true,
+                    cardCollect: [],
+                    roundCollect: [],
+                    resultCollect: [],
+                    totalPage: 5,
+                    showedPage: 1,
+                    showedCard: [],
+                    cutPosition: null,
+                    cutTriggered: false,
+                    chart: null,
+
+                },
+                methods: {
+                    getData: function () {
+                        console.log('getData');
+                        let self = this;
+                        isLoading = true
+
+                        eel.shuffle()()
+                            .then(res => {
+                                self.cardCollect = res;
+                                // self.roundCollect = res[1];
+                                // self.resultCollect = res[2];
+                            })
+                            .catch(error => {
+                                console.log(error)
+                            })
+                            .finally(() => {
+                                self.isLoading = false
+                            })
+                    },
+                    getRoad: function () {
+                        let self = this;
+                        cpp = self.cutPosition !== "" ? Number(self.cutPosition) : null;
+
+                        eel.cutCards(cpp, self.cardCollect)()
+                            .then(res => {
+                                this.roundCollect = res[0];
+                                this.resultCollect = res[1];
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            })
+                            .finally(() => {
+                                self.cutTriggered = true;
+                            })
+                    },
+                    reCalRoad: function () {
+                        let self = this;
+                        var rc = JSON.parse(JSON.stringify(self.resultCollect));
+
+                        var currX = 0
+                        var maxY = 0
+                        var yCount = 0
+
+                        var current = rc.shift()
+
+                        var result = [{
+                            x: currX,
+                            y: maxY,
+                            fill: current === "閑" ? "red" : current === "庄" ? "blue" : "gray"
+                        }]
+
+                        while (rc.length > 0) {
+
+                            var prev = current
+                            current = rc.shift()
+
+                            // 避免第一局就是合的情況
+                            if (prev === "和") {
+                                prev = current
+                            }
+
+                            if (current !== prev && current !== "和") {
+                                // 換路 -> x + 1
+                                // 檢查長龍
+                                // y = 1
+                                currX += 1
+
+                                if (yCount > maxY) {
+                                    maxY = yCount
+                                }
+
+                                yCount = 0
+
+                            } else {
+                                // 不換路 -> x 不變
+                                // yCount + 1
+                                yCount += 1
+                            }
+
+                            // 存起來
+                            result.push({
+                                x: currX,
+                                y: yCount,
+                                fill: current === "閑" ? "red" : current === "庄" ? "blue" : "gray"
+                            })
+
+                            // 如果本局為和 => 紀錄上局結果
+                            if (current === "和") {
+                                current = prev
+                            }
+
+                        }
+
+                        return {
+                            result: result,
+                            maxX: currX,
+                            maxY: maxY
+                        }
+
+                    },
+                    plotRoad: function (rc) {
+                        console.log("plot data triggered")
+                        let self = this;
+                        const xAxisRange = [...Array(rc.maxX).keys()];
+                        const yAxisRange = [...Array(rc.maxY).keys()];
+
+                        const margin = {
+                            top: 20,
+                            right: 20,
+                            bottom: 20,
+                            left: 30
+                        }
+
+                        const circleR = 12
+
+                        const width = 1200;
+                        const height = 800;
+
+                        const innerWidth = width - margin.left - margin.right;
+                        const innerHeight = height - margin.top - margin.bottom;
+
+                        const svg = d3.select(`#roadmap`);
+
+                        self.chart = svg.append('g')
+                            .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+                        const roads = svg.selectAll('roadCell')
+                            .data(rc.result)
+                            .enter().append('circle')
+                            .attr('cx', d => (d.x+1) * circleR * 2 )
+                            .attr('cy', d => (d.y+1) * circleR * 2 )
+                            .attr('r', circleR)
+                            .style('fill', d => d.fill)
+                            .style('stroke', 'solid')
+                            .style('stroke-color', d => d.fill)
+                        
+
+                        
+
+                    }
+
+                },
+                compute: {
+
+                },
+                mounted: function () {
+                    // document.getElementById('cutPosition').addEventListener('keyup', function (event) {
+                    //     event.preventDefault();
+                    //     if (event.keyCode === 13) {
+                    //         document.getElementById("starts").click();
+                    //     }
+                    // })
+                },
+                watch: {
+                    cardCollect: function (cards) {
+                        this.showedPage = 1
+                        this.showedCard = cards.slice(0, 100)
+                    },
+                    showedPage: function (page) {
+                        // console.log(this.showedPage)
+                        this.showedCard = this.cardCollect.slice(page * 100, page * 100 + 100)
+                    },
+                    resultCollect: function (val) {
+                        if (val) {                        
+                            var rc = this.reCalRoad();
+                            this.plotRoad(rc);
+                        }
+
+                    }
+
+                }
+
+            })
+        </script>
+
+
+
+</body>
+
+</html>
