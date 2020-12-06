@@ -167,72 +167,90 @@
                     },
                     reCalRoad: function () {
                         let self = this;
+                        // 深複製 resultCollect -> 避免 watch 產生無限迴圈 
                         var rc = JSON.parse(JSON.stringify(self.resultCollect));
 
-                        var currX = 0
-                        var maxY = 0
-                        var yCount = 0
+                        // x 從 1 開始
+                        // y 從 1 開始
+                        // maxX 紀錄 長龍數
+                        // maxY 紀錄高 長龍
+                        var currX = 1
+                        var currY = 1
+                        var maxY = 1
+                        var result = []
 
-                        var current = rc.shift()
+                        // 取得第一個 不是和
+                        var firstNotEven = rc.filter(d => d !== "和")[0]
 
-                        var result = [{
+                        // 取出第一個結果
+                        var currRecord = rc.shift()
+
+                        var tempRecord = {
                             x: currX,
                             y: maxY,
-                            fill: current === "閑" ? "red" : current === "庄" ? "blue" : "gray"
-                        }]
+                            result: currRecord,
+                            fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "gray"
+                        }
+
+                        result.push(tempRecord)
+
+
+                        // 避免第一個結果是 “和”
+                        // 先指定為第一個非和的值
+                        if (currRecord === "和") {
+                            currRecord = firstNotEven
+                        }
 
                         while (rc.length > 0) {
+                            // 紀錄 上一個 值
+                            var prevRecord = currRecord
+                            var currRecord = rc.shift()
 
-                            var prev = current
-                            current = rc.shift()
+                            // 如果 prevRecord !== currRecord
+                            if (prevRecord !== currRecord && currRecord !== '和'){
 
-                            // 避免第一局就是合的情況
-                            if (prev === "和") {
-                                prev = current
-                            }
-
-                            if (current !== prev && current !== "和") {
-                                // 換路 -> x + 1
-                                // 檢查長龍
-                                // y = 1
                                 currX += 1
 
-                                if (yCount > maxY) {
-                                    maxY = yCount
+                                if (currY > maxY){
+                                    maxY = currY
                                 }
 
-                                yCount = 0
+                                currY = 1
 
                             } else {
-                                // 不換路 -> x 不變
-                                // yCount + 1
-                                yCount += 1
+                                // prevRecord === currRecord or currRecord === "和"
+                                // currY += 1
+                                currY += 1
+
                             }
 
-                            // 存起來
-                            result.push({
+                            tempRecord = {
                                 x: currX,
-                                y: yCount,
-                                fill: current === "閑" ? "red" : current === "庄" ? "blue" : "gray"
-                            })
-
-                            // 如果本局為和 => 紀錄上局結果
-                            if (current === "和") {
-                                current = prev
+                                y: currY,
+                                result: currRecord,
+                                fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "gray"
                             }
 
+                            result.push(tempRecord)
+
+
+                            if (currRecord === "和"){
+                                currRecord = prevRecord
+                            }
+                            
                         }
 
                         return {
-                            result: result,
                             maxX: currX,
-                            maxY: maxY
+                            maxY: maxY,
+                            result: result
                         }
 
                     },
                     plotRoad: function (rc) {
                         console.log("plot data triggered")
                         let self = this;
+                        
                         const xAxisRange = [...Array(rc.maxX).keys()];
                         const yAxisRange = [...Array(rc.maxY).keys()];
 
@@ -253,6 +271,8 @@
 
                         const svg = d3.select(`#roadmap`);
 
+                        svg.selectAll("*").remove();
+
                         self.chart = svg.append('g')
                             .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
@@ -265,8 +285,6 @@
                             .style('fill', d => d.fill)
                             .style('stroke', 'solid')
                             .style('stroke-color', d => d.fill)
-                        
-
                         
 
                     }
