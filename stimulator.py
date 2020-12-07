@@ -1,4 +1,5 @@
 from generateCards import BJLCardSets
+import random
 import time
 
 class BJLStimulator(BJLCardSets):
@@ -169,15 +170,15 @@ class BJLStimulator(BJLCardSets):
         # return cardCollect, roundRecord, roadRecord
         return roundRecord, roadRecord
     
-"""         
-if __name__=="__main__":
-    start_time = time.time()
-    bjl = BJLStimulator()
-    cutted = bjl.generateCardSet(205)
-    cards, rounds, roads = bjl.getRoad(cutted)
-    print("====+===== Total take time: %.2f seconds ============" % (time.time() - start_time))
+    def randomReBuild(self, resultCollect):
+        # 先決定從庄還是從閑開始
+        firstRecord = "庄" if random.randint(0, 100) % 2 else "閑"
+        
+        bankers = resultCollect.filter(lambda ele: ele['winner'] == "庄")
+        players = resultCollect.filter(lambda ele: ele['winner'] == "閑")
+        evens = resultCollect.filter(lambda ele: ele['winner'] == "和")
 
-"""            
+        
             
 
 

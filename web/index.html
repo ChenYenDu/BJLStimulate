@@ -52,7 +52,6 @@
             justify-content: center;
             align-items: center;
         }
-
     </style>
 </head>
 
@@ -96,7 +95,8 @@
                         v-on:click="()=>{this.showedPage=4}">5</button>
                 </div>
                 <div class="road-holder">
-                    <svg id="roadmap" width="1200" height="800"></svg>
+                    <svg id="roadmap" width="1600" height="800"></svg>
+
                 </div>
 
             </div>
@@ -165,6 +165,110 @@
                                 self.cutTriggered = true;
                             })
                     },
+                    calGoodRoad: function () {
+                        let self = this;
+                        var rc = JSON.parse(JSON.stringify(self.resultCollect));
+
+                        // remove all "和" from rc
+                        // "和" won't affect good roads
+                        rc = rc.filter(ele => ele !== "和")
+
+                        // good road
+                        var longB = 0 // 長庄
+                        var longP = 0 // 長閑
+                        var singleJump = 0 // 大路單跳
+                        var doubleJump = 0 // 大路雙跳
+                        var playerJump = 0 // 逢閑跳
+                        var oPtB = 0 // 一廳兩房(庄)
+                        var oBtP = 0 // 一廳兩房(閑)
+                        var bankerJump = 0 // 逢閑跳
+                        var ppz = 0 // 拍拍黐
+                        var sqRoad = 0
+
+                        var bankers = []
+                        var players = []
+
+                        var currRecord = rc.shift()
+                        var prevRecord
+                        var success = 1
+
+                        while (rc.length > 0) {
+                            prevRecord = currRecord
+                            currRecord = rc.shift()
+
+                            if (currRecord === prevRecord) {
+                                success += 1
+                            } else {
+                                if (prevRecord === "庄") {
+                                    bankers.push(success)
+                                } else {
+                                    players.push(success)
+                                }
+                                success = 1
+                            }
+                        }
+                        d
+
+                        longB = bankers.filter(ele => ele >= 4).length
+                        longP = players.filter(ele => ele >= 4).length
+
+                        console.log({
+                            '長庄': longB,
+                            '長閑': longP,
+                        })
+
+                        var bankerJumpCheck = 0
+                        var playerJumpCheck = 0
+
+                        //計算逢庄跳
+                        for (var i = 0; i < bankers.length; i++) {
+                            if (bankers[i] !== 1) {
+                                bankerJumpCheck = 0
+                            } else {
+                                bankerJumpCheck += 1
+                            }
+
+                            if (bankerJumpCheck === 3) {
+                                bankerJump += 1
+                            }
+                        }
+
+                        // 計算逢閑跳
+                        for (var i = 0; i < players.length; i++) {
+
+                            if (players[i] !== 1) {
+                                playerJumpCheck = 0
+                            } else {
+                                playerJumpCheck += 1
+                            }
+
+                            if (playerJumpCheck === 3) {
+                                playerJump += 1
+                            }
+                        }
+
+                        console.log({
+                            '逢閑跳': playerJump,
+                            '逢庄跳': bankerJump
+                        })
+
+                        var singleJumpCheck = 0
+                        var doubleJumpCheck = 0
+
+                        // 計算大路單跳 & 大路雙跳
+                        targetLength = Math.max(bankers.length, players.length)
+
+                        var bankerPrev = 0
+                        var playerPrev = 0
+
+                        n = 0
+
+
+
+
+
+
+                    },
                     reCalRoad: function () {
                         let self = this;
                         // 深複製 resultCollect -> 避免 watch 產生無限迴圈 
@@ -189,11 +293,10 @@
                             x: currX,
                             y: maxY,
                             result: currRecord,
-                            fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "gray"
+                            fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "green"
                         }
 
                         result.push(tempRecord)
-
 
                         // 避免第一個結果是 “和”
                         // 先指定為第一個非和的值
@@ -207,37 +310,31 @@
                             var currRecord = rc.shift()
 
                             // 如果 prevRecord !== currRecord
-                            if (prevRecord !== currRecord && currRecord !== '和'){
-
+                            if (prevRecord !== currRecord && currRecord !== '和') {
                                 currX += 1
-
-                                if (currY > maxY){
+                                if (currY > maxY) {
                                     maxY = currY
                                 }
-
                                 currY = 1
-
                             } else {
                                 // prevRecord === currRecord or currRecord === "和"
                                 // currY += 1
                                 currY += 1
-
                             }
 
                             tempRecord = {
                                 x: currX,
                                 y: currY,
                                 result: currRecord,
-                                fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "gray"
+                                fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "green"
                             }
 
                             result.push(tempRecord)
 
-
-                            if (currRecord === "和"){
+                            if (currRecord === "和") {
                                 currRecord = prevRecord
                             }
-                            
+
                         }
 
                         return {
@@ -250,7 +347,7 @@
                     plotRoad: function (rc) {
                         console.log("plot data triggered")
                         let self = this;
-                        
+
                         const xAxisRange = [...Array(rc.maxX).keys()];
                         const yAxisRange = [...Array(rc.maxY).keys()];
 
@@ -274,18 +371,40 @@
                         svg.selectAll("*").remove();
 
                         self.chart = svg.append('g')
-                            .attr('transform', `translate(${margin.left}, ${margin.top})`);
+                            .attr('transform', `translate(${margin.left}, 0)`);
 
                         const roads = svg.selectAll('roadCell')
                             .data(rc.result)
                             .enter().append('circle')
-                            .attr('cx', d => (d.x+1) * circleR * 2 )
-                            .attr('cy', d => (d.y+1) * circleR * 2 )
+                            .attr('cx', d => (d.x + 1) * circleR * 2)
+                            .attr('cy', d => (d.y + 1) * circleR * 2)
                             .attr('r', circleR)
                             .style('fill', d => d.fill)
                             .style('stroke', 'solid')
-                            .style('stroke-color', d => d.fill)
-                        
+                            .style('stroke-color', d => d.fill);
+
+                        // create table grids
+                        const tableGrid = []
+                        for (var i = 1; i < rc.maxX + 1; i++) {
+                            for (var j = 1; j < rc.maxY + 1; j++) {
+                                tableGrid.push({
+                                    x: i,
+                                    y: j
+                                })
+                            }
+                        }
+
+                        const squares = svg.selectAll('sqCell')
+                            .data(tableGrid)
+                            .enter().append('rect')
+                            .attr('x', d => (d.x + 0.5) * circleR * 2)
+                            .attr('y', d => (d.y + 0.5) * circleR * 2)
+                            .attr('width', circleR * 2)
+                            .attr('height', circleR * 2)
+                            .style('fill', "None")
+                            .style('stroke', 'black')
+                            .style('stroke-widht', '1px')
+
 
                     }
 
@@ -307,15 +426,15 @@
                         this.showedCard = cards.slice(0, 100)
                     },
                     showedPage: function (page) {
-                        // console.log(this.showedPage)
                         this.showedCard = this.cardCollect.slice(page * 100, page * 100 + 100)
                     },
                     resultCollect: function (val) {
-                        if (val) {                        
-                            var rc = this.reCalRoad();
-                            this.plotRoad(rc);
+                        if (val) {
+                            // 重新計算大路座標, 並畫圖
+                            this.plotRoad(this.reCalRoad());
+                            // 重新計算好路統計
+                            this.calGoodRoad();
                         }
-
                     }
 
                 }
