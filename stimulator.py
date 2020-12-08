@@ -79,16 +79,13 @@ class BJLStimulator(BJLCardSets):
         return '-'.join([color, number])
         
     def getRoad(self, cardSets):
-        # cardSets = self.generateCardSet(position)
-        # cardCollect = [ self.getRealCards(card) for card in cardSets ]
-        # cardCollect = cardSets
-
-        # print("牌組: ", cardCollect)
-        
+                
         pleyerWin = 0
         dealerWin = 0
 
         roundRecord = []
+        bankerRound = []
+        playerRound = []
         roadRecord = []
 
         playerCards = []
@@ -142,51 +139,102 @@ class BJLStimulator(BJLCardSets):
                     'winner': winner,
                 }
             
-            # 舊存法
-            # currentRecord = {
-            #         "閑": [self.getRealCards(ele) for ele in playerCards],
-            #         "庄": [self.getRealCards(ele) for ele in bankerCards],
-            #         "補": substituteCards if substituteCards == [] else [self.getRealCards(ele)  for ele in substituteCards],
-            #         'pp': playerPoint,
-            #         'bp': bankerPoint,
-            #         'winner': winner,
-            #     }
-
-            # print("     --> Result Recorded....")
             
             # 存牌局結果
             roundRecord.append(currentRecord)
 
+            if winner == "庄":
+                bankerRound.append(currentRecord)
+            
+            if winner == "閑":
+                playerRound.append(currentRecord)
+
+            if winner == "和":
+                picker = random.randint(0, 10)
+                if picker % 2 :
+                    bankerRound.append(currentRecord)
+                else:
+                    playerRound.append(currentRecord)
+                
             # 存 庄閑贏 算路圖
             roadRecord.append(winner)
 
-
-            # print('--- Round ', n, ' ends ---')
-            # print("")
             n += 1
             playerCards = []
             bankerCards = []
         
         # return cardCollect, roundRecord, roadRecord
-        return roundRecord, roadRecord
-    
-    def randomReBuild(self, resultCollect):
+        return roundRecord, roadRecord, bankerRound, playerRound, cardSets
+
+    def randomReBuild(self, bankerRound, playerRound, lessCards):
+        
         # 先決定從庄還是從閑開始
-        firstRecord = "庄" if random.randint(0, 100) % 2 else "閑"
+        currentWinner = "庄" if random.randint(0, 100) % 2 else "閑"
         
-        bankers = resultCollect.filter(lambda ele: ele['winner'] == "庄")
-        players = resultCollect.filter(lambda ele: ele['winner'] == "閑")
-        evens = resultCollect.filter(lambda ele: ele['winner'] == "和")
+        # 確定總局數
+        totalRounds = len(bankerRound) + len(playerRound)
 
+        # 取局索引 -> currentWinner 不同, 取局的 list 也要不同
+        roundDict = {
+            "庄": bankerRound,
+            "閑": playerRound
+        }
+
+        # 存最後結果
+        result = []
+
+        # 用來記長龍, 開發完成 commet 
+        n = 1
+
+        # 直到所有的局都被取完才結束迴圈
+        while totalRounds > 0:
+
+            print('===== current round: %s =====' % {n})
+            print('===== current winner: %s =====' % {currentWinner})
+            
+            # 本長龍總共幾局: 1 ~ 6 
+            # 主管給定條件
+            roundNumber = random.randint(1, 6)
+            
+            # 紀錄本長龍每局的詳細結果
+            # 才能使用逆反工程
+            currentRecord = []
+            
+            # 
+            while roundNumber > 0 and len(roundDict[currentWinner]) > 0:
+                print("------   current round number less: %s -----" % {roundNumber})
+                print("------   current list length less: %s -----" % {len(roundDict[currentWinner])})
+                sampleIndex = random.randint(0, len(roundDict[currentWinner])-1)
+                print("------ sampling index: %s -----" % {sampleIndex})
+                tt = roundDict[currentWinner].pop(sampleIndex)
+                print(tt)
+                currentRecord.append(tt)
+
+                roundNumber -= 1
+                totalRounds -= 1
+
+            print(currentRecord)
+            result.append(currentRecord)
+
+            if currentWinner == "庄":
+                currentWinner = "閑"
+            else:
+                currentWinner = "庄"
+            
+            if roundNumber > 0:
+                break
+            
+            n += 1
         
-            
+        result.append(roundDict[currentWinner])
+
+        return result
+
+    def reverseBuildFunction(self, randRound, lessCards):
+        pass
 
 
             
-                
-                
-
-
             
 
                 
