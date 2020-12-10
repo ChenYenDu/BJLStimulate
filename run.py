@@ -13,9 +13,9 @@ def shuffle():
 def cutCards(cut, cards):
     cardSets = bjl.cutCards(cards, cut)
 
-    rounds, roads = bjl.getRoad(cardSets)
+    rounds, roads, bankers, players, remains = bjl.getRoad(cardSets)
 
-    return [rounds, roads]
+    return [rounds, roads, bankers, players, remains]
 
 eel.init('web', allowed_extensions=['.js', '.html', '.css'])
 eel.start('index.html')

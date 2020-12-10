@@ -4,118 +4,158 @@ from stimulator import BJLStimulator
 
 clear = lambda: os.system('cls')
 bjl = BJLStimulator()
-roundRecord, roadRecord, bankerRound, playerRound, cardSets = bjl.getRoad(bjl.shuffleCards())
-
-def reverseBuildFunction(roundResult):
-    banker = roundResult['庄']   
-    player = roundResult['閑']
-
-    result = []
-
-    n = 0
-
-    while n < 3:
-        if player:
-            result.append(player.pop(0))
-        
-        if banker:
-            result.append(banker.pop(0))
-
-        n += 1
-    
-    return result
 
 
-def randomReBuild(bankerRound, playerRound, lessCards):
-        
-        # 先決定從庄還是從閑開始
-        currentWinner = "庄" if random.randint(0, 100) % 2 else "閑"
-        
-        # 確定總局數
-        totalRounds = len(bankerRound) + len(playerRound)
-
-        # 取局索引 -> currentWinner 不同, 取局的 list 也要不同
-        roundDict = {
-            "庄": bankerRound,
-            "閑": playerRound
-        }
-
-        # 存最後結果
-        result = []
-
-        # 用來記長龍, 開發完成 commet 
-        n = 1
-
-        # 直到所有的局都被取完才結束迴圈
-        while totalRounds > 0:
-
-            print('===== current round: %s =====' % {n})
-            print('===== current winner: %s =====' % {currentWinner})
-            
-            # 本長龍總共幾局: 1 ~ 6 
-            # 主管給定條件
-            roundNumber = random.randint(1, 6)
-            
-            # 紀錄本長龍每局的詳細結果
-            # 才能使用逆反工程
-            currentRecord = []
-            
-            # 
-            while roundNumber > 0 and len(roundDict[currentWinner]) > 0:
-                print("------   current round number less: %s -----" % {roundNumber})
-                print("------   current list length less: %s -----" % {len(roundDict[currentWinner])})
-                sampleIndex = random.randint(0, len(roundDict[currentWinner])-1)
-                print("------ sampling index: %s -----" % {sampleIndex})
-                tt = roundDict[currentWinner].pop(sampleIndex)
-                print(tt)
-                currentRecord.append(tt)
-
-                roundNumber -= 1
-                totalRounds -= 1
-
-            print(currentRecord)
-            result.append(currentRecord)
-
-            if currentWinner == "庄":
-                currentWinner = "閑"
-            else:
-                currentWinner = "庄"
-            
-            if roundNumber > 0:
-                break
-            
-            n += 1
-        
-        if roundDict[currentWinner]:
-            result.append(roundDict[currentWinner])
-
-        #  要做倒組工程 需要從最後一副牌一路倒回
-        # reverseCards = []
-
-        return result          
-                
 def randomBuild():
-    cards = bjl.all_cards
-    
-    result = []
 
+    colors = list(map(lambda ele: str(ele), range(1, 5)))
+    numbers = list(map(lambda ele: str(ele), range(1, 14)))
+
+    cards = []
+    for color in colors:
+        cards += map(lambda ele: '-'.join([color, ele]), numbers)
+    
+    cards = cards * 8
+
+    def randPop():
+        return cards.pop(random.randint(0, len(cards)-1))
+
+    def countPoint(pointa, pointb):
+        return (pointa + bjl.getNumber(pointb)) % 10
+
+    result = [] # 存花色點數
+    rounds = [] # 存每局贏家
+
+    # 決定第一條長龍的長度
     currentWinner = "庄" if random.randint(1, 10) % 2 else "閑"
 
+    # 單跳次數
+    singleJumpCount = 0
+
+    # 重建牌組直到牌無法成組
     while len(cards) >= 6:
         
-        # 決定長龍長度
-        longCount = random.randint(1, 6)
+        # 決定長龍長度, 隨機後亂訂公式
+        # longCount = longCount = (int(random.randint(1, 1000) * 0.341516172) * 1206 - 1) % 6 + 1
+        longCount = random.choices([1,2,3,4,5,6,7], [13, 27, 33, 22, 11, 7, 1])[0]
+
+        if longCount != 1:
+            singleJumpCount = 0
+        else:
+            singleJumpCount += 1
 
         while longCount > 0:
             if len(cards) < 6:
                 break
             
-            player = []
+            player = [] 
             banker = []
-            popIndex = [ cards.pop(random.randint(0, len(cards)-1)) for i in range(4) ]
+            popIndex = []
 
+            for i in range(4):
+                popIndex.append(randPop())
+
+            # 先隨機發 4 張牌
             while popIndex:
                 if popIndex:
-                    player.append(cards.pop())
+                    player.append(popIndex.pop())
+                if popIndex:
+                    banker.append(popIndex.pop())
+            
+            # 計算前 2 張點數
+            playerPoint = bjl.getPoint(player)
+            bankerPoint = bjl.getPoint(banker)
+            doPlayerAddCard = playerPoint < 6
+
+            # 補牌規則
+            # 閒家只要小於 6 就補牌
+            if doPlayerAddCard:
+                playerAddCard = randPop()
+                playerPoint = countPoint(playerPoint, playerAddCard)
+                player.append(playerAddCard)
+            
+            # 莊家補牌規則
+            # 莊家 > 6: 不補牌
+            if bankerPoint <= 6:
+                if bankerPoint == 6:     # 莊家 = 6
+                    if doPlayerAddCard:  # 閒家補排 
+                        if playerPoint in [6, 7]:  # 閒家補牌後點數: 6, 7 -> 補牌
+                            bankerAddCard = randPop() 
+                            bankerPoint = countPoint(bankerPoint, bankerAddCard)
+                            banker.append(bankerAddCard)
+
+                elif bankerPoint == 5:   # 莊家 = 5:
+                    if doPlayerAddCard:  # 閒家補牌
+                        if playerPoint in [4,5,6,7]:   #閒家補牌後點數: 4, 5, 6, 7 -> 補牌
+                            bankerAddCard = randPop()
+                            bankerPoint = countPoint(bankerPoint, bankerAddCard)
+                            banker.append(bankerAddCard)
+
+                    else:   # 閒家不補牌, 莊家直接補牌
+                        bankerAddCard = randPop()
+                        bankerPoint = countPoint(bankerPoint, bankerAddCard)
+                        banker.append(bankerAddCard)
+
+                elif bankerPoint == 4: # 莊家 = 4
+                    if doPlayerAddCard: # 閒家補牌
+                        if playerPoint not in [0, 1, 8, 9]: # 閒家補牌後點數:0,1,8,9 -> 補牌
+                            bankerAddCard = randPop()
+                            bankerPoint = countPoint(bankerPoint, bankerAddCard)
+                            banker.append(bankerAddCard)
+
+                    else: # 閒家不補牌, 莊家直接補牌
+                        bankerAddCard = randPop()
+                        bankerPoint = countPoint(bankerPoint, bankerAddCard)
+                        banker.append(bankerAddCard)
+
+                elif bankerPoint == 3: # 莊家 = 3
+                    if doPlayerAddCard: 
+                        if playerPoint != 8:  # 閒家補牌後點數只要不為 8 -> 補牌
+                            bankerAddCard = randPop()
+                            bankerPoint = countPoint(bankerPoint, bankerAddCard)
+                            banker.append(bankerAddCard)
+
+                    else: # 閒家不補牌, 莊家直接補牌
+                        bankerAddCard = randPop()
+                        bankerPoint = countPoint(bankerPoint, bankerAddCard)
+                        banker.append(bankerAddCard)
+
+                else: # 莊家 <= 2, 直接補牌
+                    bankerAddCard = randPop()
+                    bankerPoint = countPoint(bankerPoint, bankerAddCard)
+                    banker.append(bankerAddCard)
+
+            # 確認贏家
+            winner = "閑" if playerPoint > bankerPoint else "和" if playerPoint == bankerPoint else "庄"
+
+            # 如果和局, 用 7:3 決定是否保留開局 (留:8, 去: 2), 避免和局過多
+            if winner == "和":
+                canBeEven = random.choices([True, False], [8, 2])
+
+            # 牌局成立
+            if winner == currentWinner or winner == "和":
+                longCount -= 1  # 長龍剩餘局數 -1
+                rounds.append(winner) # 紀錄庄閑和結果
+                for i in range(3): # 迴圈重建牌組
+                    if player:
+                        result.append(player.pop(0))
+                    if banker:
+                        result.append(banker.pop(0))
+            else:
+                cards.extend(player)
+                cards.extend(banker)
+            
+            if longCount == 0:
+                # longCount = (int(random.randint(1, 1000) * 0.341516172) * 1206 - 1) % 6 + 1
+                longCount = random.choices([1,2,3,4,5,6,7], [13, 27, 33, 22, 11, 7, 1])[0]
+                if singleJumpCount >= 3:
+                    longCount = random.choices([2,3,4,5,6])[0]
+                currentWinner = "庄" if currentWinner=="閑" else "閑"
+
+    return result, rounds, cards         
+
 
             
+
+            
+

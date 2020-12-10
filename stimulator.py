@@ -12,6 +12,10 @@ class BJLStimulator(BJLCardSets):
     def getNumber(self, card):
         return 10 if (int(card[2:])) // 10  else int(card[2:])
 
+    def getPoint(self, cards):
+        point = sum([self.getNumber(ele) for ele in cards]) % 10
+        return point
+
     def getWinner(self, pc, bc, sc):
         '''
             pc: playerCards
@@ -71,7 +75,6 @@ class BJLStimulator(BJLCardSets):
 
         return playerPoint, bankerPoint, winner, pc, bc, sc
             
-
     def getRealCards(self, card):
         color, number = card.split('-')
         for c, r in {'4': "黑桃", '3':'紅心', '2': '方塊', '1': '梅花'}.items():
@@ -166,80 +169,4 @@ class BJLStimulator(BJLCardSets):
         # return cardCollect, roundRecord, roadRecord
         return roundRecord, roadRecord, bankerRound, playerRound, cardSets
 
-    def randomReBuild(self, bankerRound, playerRound, lessCards):
-        
-        # 先決定從庄還是從閑開始
-        currentWinner = "庄" if random.randint(0, 100) % 2 else "閑"
-        
-        # 確定總局數
-        totalRounds = len(bankerRound) + len(playerRound)
-
-        # 取局索引 -> currentWinner 不同, 取局的 list 也要不同
-        roundDict = {
-            "庄": bankerRound,
-            "閑": playerRound
-        }
-
-        # 存最後結果
-        result = []
-
-        # 用來記長龍, 開發完成 commet 
-        n = 1
-
-        # 直到所有的局都被取完才結束迴圈
-        while totalRounds > 0:
-
-            print('===== current round: %s =====' % {n})
-            print('===== current winner: %s =====' % {currentWinner})
-            
-            # 本長龍總共幾局: 1 ~ 6 
-            # 主管給定條件
-            roundNumber = random.randint(1, 6)
-            
-            # 紀錄本長龍每局的詳細結果
-            # 才能使用逆反工程
-            currentRecord = []
-            
-            # 
-            while roundNumber > 0 and len(roundDict[currentWinner]) > 0:
-                print("------   current round number less: %s -----" % {roundNumber})
-                print("------   current list length less: %s -----" % {len(roundDict[currentWinner])})
-                sampleIndex = random.randint(0, len(roundDict[currentWinner])-1)
-                print("------ sampling index: %s -----" % {sampleIndex})
-                tt = roundDict[currentWinner].pop(sampleIndex)
-                print(tt)
-                currentRecord.append(tt)
-
-                roundNumber -= 1
-                totalRounds -= 1
-
-            print(currentRecord)
-            result.append(currentRecord)
-
-            if currentWinner == "庄":
-                currentWinner = "閑"
-            else:
-                currentWinner = "庄"
-            
-            if roundNumber > 0:
-                break
-            
-            n += 1
-        
-        result.append(roundDict[currentWinner])
-
-        return result
-
-    def reverseBuildFunction(self, randRound, lessCards):
-        pass
-
-
-            
-            
-
-                
-
-        
     
-
-
