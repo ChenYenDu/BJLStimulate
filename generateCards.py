@@ -35,4 +35,3 @@ class BJLCardSets:
 
     def generateCardSet(self, position=None):
         return self.cutCards( [ ele for ele in self.shuffleCards()],  position)
-         
