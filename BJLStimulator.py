@@ -74,15 +74,7 @@ class ReverseBJL:
             # 決定長龍長度, 隨機後亂訂公式
             # longCount = longCount = (int(random.randint(1, 1000) * 0.341516172) * 1206 - 1) % 6 + 1
             longCount = random.randint(1, 6)
-
-            # 如果沒有連續出現 長度 1 的長龍
-            # 單跳計算器歸 0
-            if longCount != 1:
-                singleJumpCount = 0
-            else:
-                # 連續出現 長度 1 的龍
-                # 單跳計算器 + 1
-                singleJumpCount += 1
+            currentLength = longCount
 
             # 組建每局牌的無限迴圈
             while longCount > 0:
@@ -90,7 +82,10 @@ class ReverseBJL:
                 # 在牌組張數不足 6 不成局時, 結束無限迴圈
                 if len(cards) < 6:
                     break
-                
+
+                # 用來計算該長龍和局, 避免發生和局等於長龍長度bug
+                evenCount = 0
+
                 player = [] # 存單局 閑 牌組
                 banker = [] # 存單局 庄 牌組
 
@@ -171,10 +166,14 @@ class ReverseBJL:
                 # 確認贏家
                 winner = "閑" if playerPoint > bankerPoint else "和" if playerPoint == bankerPoint else "庄"
 
-                canBeEven = True
+                
                 # 如果和局, 用 7:3 決定是否保留開局 (留:2, 去: 8), 避免和局過多
-                if winner == "和":
-                    canBeEven = random.choices([True, False], [1,9])
+                canBeEven = False
+                if currentLength > (evenCount+1): # 單一長龍和局數必小於該長龍長度
+                    if winner == "和":
+                        canBeEven = random.choices([True, False], [1,9])
+                        if canBeEven:
+                            evenCount += 1
 
                 # 牌局成立
                 if winner == currentWinner or canBeEven:
@@ -201,12 +200,23 @@ class ReverseBJL:
                     # 長龍 庄閑 互換
                     # longCount = (int(random.randint(1, 1000) * 0.341516172) * 1206 - 1) % 6 + 1
                     longCount = random.randint(1, 6)
+                    currentLength = longCount
+                    evenCount = 0
 
                     # 如果單跳次數大於等於 3 調整長龍長度的選擇
                     if singleJumpCount >= 3:
                         longCount = random.randint(1, 6)
 
                     currentWinner = "庄" if currentWinner == "閑" else "閑"
+
+                    # 如果沒有連續出現 長度 1 的長龍
+                    # 單跳計算器歸 0
+                    if longCount != 1:
+                        singleJumpCount = 0
+                    else:
+                        # 連續出現 長度 1 的龍
+                        # 單跳計算器 + 1
+                        singleJumpCount += 1
 
         return result, rounds, cards, details
 
