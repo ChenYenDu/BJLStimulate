@@ -1,125 +1,58 @@
-import random
-import os
+def randomBuild(self):
+        '''
+        根據需求計算牌組:
+        1. 計算至少70局
+        2. 長龍最多 5 ~ 6
+        3. 單跳最多 5 ~ 6
+        '''
 
-class ReverseBJL:
-    
-    def __init__(self):
-        pass
-
-    def generateCardset(self, setNumber=8):
-        # 創造牌組
-        # 花色, 號碼
-        colors = list(map(lambda ele: str(ele), range(1, 5)))
-        numbers = list(map(lambda ele: str(ele), range(1, 14)))
-
-        cards = []
-
-        # 迴圈造牌
-        for color in colors:
-            cards += map(lambda ele: '-'.join([color, ele]), numbers)
-        
-        # 變成 8 副牌
-        cards = cards * setNumber
-        return cards
-
-    def shuffleCard(self, cardset):
-        # 洗牌
-        shuffledCards = random.sample(cardset, 416)
-        return shuffledCards
-
-    def getNumber(self, card):
-        # 撲克牌點數 -> 百家樂點數
-        return 10 if (int(card[2:])) // 10  else int(card[2:])
-
-    def getPoint(self, cards):
-        # 計算手牌點數
-        point = sum([self.getNumber(ele) for ele in cards]) % 10
-        return point
-
-    def randPop(self, cardset):
-        # 隨機挑牌
-        if len(cardset) > 2:
-            return cardset.pop(random.randint(1, len(cardset)-1))
-        else:
-            return cardset.pop()
-
-    def pointAfterAdd(self, pointBefore, addedCard):
-        # 計算補牌後點數
-        return (pointBefore + self.getNumber(addedCard)) % 10
-
-
-    def randomBuild(self, maxLength=6, singleJumpMax=0, doubleJumpMax=0):
-        
-        # 創造排組, 洗牌增加隨機性
+        # 創造牌組, 洗牌增加隨機性
         cards = self.shuffleCard(self.generateCardset())
 
-        result = []   # 存花色點數
-        rounds = []   # 存每局贏家
-        details = []  # 存每局細節
+        result = [] # 存花色點數
+        rounds = [] # 存每局贏家
+        details = []
 
-        # 決定初始贏家 (庄 | 閑)
-        currentWinner = random.choice(['庄', '閑'])
+        # 決定第一條長龍贏家
+        currentWinner = random.choice(["庄", "閑"])
 
-        # 單跳相關
-        singleBalls = 0       # 單球長龍連續出現次數
-        singleJumpCount = 0   # 單跳次數計算. 最後應該跟 singleJumpMax 一樣
+        # 單跳次數計算器
+        singleJumpCount = 0
 
-        # 雙跳相關
-        doubleBalls = 0       # 雙球長龍連續出現次數
-        doubleJumpCount = 0   # 雙跳次數計算, 最後應該跟 doubleJumpMax 一樣
-
-        # 建立隨機選長龍長度 array, 避免重複計算的效能問題
-        allLength = [ele for ele in range(1, singleJumpMax+1)]          # 全部
-        noSingle = list(filter(lambda ele: ele != 1, allLength))         # 去 1
-        noDouble = list(filter(lambda ele: ele != 2, allLength))        # 去 2
-        noSaD = list(filter(lambda ele: ele not in (1, 2), allLength))  # 去 1,2
-
-        # 重建牌組直到牌無法構成一局
+        # 重建牌組直到牌不夠一局無法成組
         while len(cards) >= 6:
-
-            # 決定長龍程度, 必須小心單跳, 雙跳 不可以過多
-            singleNotAllowed = (singleBalls < 4 and singleJumpCount == singleJumpMax) # 不可出 1
-            doubleNotAllowed = (doubleBalls < 4 and doubleJumpCount == doubleJumpMax) # 不顆出 2
-
-            # 判斷 singleNotAllowed, doubleNotAllowed 去決定取數的array
-            if singleNotAllowed and doubleNotAllowed:
-                longCount = random.choice(noSaD)
-            elif singleNotAllowed and not doubleNotAllowed:
-                longCount = random.choice(noSingle)
-            elif doubleNotAllowed and not singleNotAllowed:
-                longCount = random.choice(noDouble)
-            else:
-                longCount = random.choice(allLength)
             
+            # 決定長龍長度, 隨機後亂訂公式
+            # longCount = longCount = (int(random.randint(1, 1000) * 0.341516172) * 1206 - 1) % 6 + 1
+            longCount = random.randint(1, 6)
             currentLength = longCount
 
-            # 組建每局的迴圈
+            # 組建每局牌的無限迴圈
             while longCount > 0:
 
-                # 排組張數不足6, 不成局時, 結束迴圈
+                # 在牌組張數不足 6 不成局時, 結束無限迴圈
                 if len(cards) < 6:
                     break
 
-                # 計算這條長龍的和局次數, 避免都是和局的 bug
+                # 用來計算該長龍和局, 避免發生和局等於長龍長度bug
                 evenCount = 0
 
-                player = []  # 存單局 閑 牌組
-                banker = []  # 存單局 庄 牌組
+                player = [] # 存單局 閑 牌組
+                banker = [] # 存單局 庄 牌組
 
-                # 隨機從牌組取 4 張牌
-                popIndex = [self.randPop(cards) for _ in range(4)]
+                popIndex = [self.randPop(cards) for _ in range(4)] # 隨機從牌組取 4 張牌
 
-                # 隨機給牌
+                # 先隨機發 4 張牌
                 while popIndex:
                     if popIndex:
                         player.append(popIndex.pop())
                     if popIndex:
                         banker.append(popIndex.pop())
-                    
+                
                 # 計算前 2 張點數
                 playerPoint = self.getPoint(player)
                 bankerPoint = self.getPoint(banker)
-
+                
                 # 判斷閑是否補牌
                 doPlayerAddCard = playerPoint < 6
 
@@ -184,17 +117,18 @@ class ReverseBJL:
                 # 確認贏家
                 winner = "閑" if playerPoint > bankerPoint else "和" if playerPoint == bankerPoint else "庄"
 
-                # 如果 "和", 用 1:9 (留:棄) 決定是否保留, 避免和局過多
+                
+                # 如果和局, 用 7:3 決定是否保留開局 (留:2, 去: 8), 避免和局過多
                 canBeEven = False
-                if currentLength > (evenCount+1):
+                if currentLength > (evenCount+1): # 單一長龍和局數必小於該長龍長度
                     if winner == "和":
-                        canBeEven = random.choices([True, False], [1, 9])
+                        canBeEven = random.choices([True, False], [1,9])
                         if canBeEven:
                             evenCount += 1
-                            
+
                 # 牌局成立
                 if winner == currentWinner or canBeEven:
-                    longCount -=1 # 長龍剩餘局數 -1
+                    longCount -= 1  # 長龍剩餘局數 -1
                     rounds.append(winner) # 紀錄庄閑和結果
                     details.append({
                         'player': player.copy(),
@@ -202,30 +136,37 @@ class ReverseBJL:
                         'winner': winner,
                     })
 
-                    for i in range(3):
+                    for i in range(3): # 迴圈重建牌組
                         if player:
                             result.append(player.pop(0))
                         if banker:
                             result.append(banker.pop(0))
+                else:
+                    cards.extend(player)
+                    cards.extend(banker)
                 
+                if longCount == 0:
+                    # 當迴圈剩餘長度歸 0
+                    # 隨機給訂新的長度
+                    # 長龍 庄閑 互換
+                    # longCount = (int(random.randint(1, 1000) * 0.341516172) * 1206 - 1) % 6 + 1
+                    longCount = random.randint(1, 6)
+                    currentLength = longCount
+                    evenCount = 0
 
+                    # 如果單跳次數大於等於 3 調整長龍長度的選擇
+                    if singleJumpCount >= 3:
+                        longCount = random.randint(1, 6)
 
-                
-                    
+                    currentWinner = "庄" if currentWinner == "閑" else "閑"
 
-            
+                    # 如果沒有連續出現 長度 1 的長龍
+                    # 單跳計算器歸 0
+                    if longCount != 1:
+                        singleJumpCount = 0
+                    else:
+                        # 連續出現 長度 1 的龍
+                        # 單跳計算器 + 1
+                        singleJumpCount += 1
 
-        return result, rounds, details
-
-
-    def reverseCut(self, cardsets, position):
-        # 回復切牌前結果
-        frontPart = cardsets[ (-1 * position) : ]
-        endPart = cardsets[ : ( -1 * position) ]
-        return frontPart + endPart
-
-
-
-rBJL = ReverseBJL()
-rBJL.randomBuild()
-
+        return result, rounds, cards, details
