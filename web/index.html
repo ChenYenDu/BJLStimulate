@@ -72,12 +72,71 @@
         </div> -->
 
         <div class="row" style="margin: 20px 0;">
-            <div class="col-1" style="margin-right: 0; padding-right: 0">
-                <input v-model="cutPosition" type="text" id="cutPosition" class="form-control" placeholder="切牌位置 2~415"
-                    v-on:keyup.enter="getRoad">
+            <div class="col-2" style="margin-right: 0; padding-right: 0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">切牌位置</span>
+                    </div>
+                    <input type="text" placeholder="2~415" class="form-control" v-model="cutPosition">
+                </div>
             </div>
-            <div class="col-1">
-                <button id="starts" class="btn btn-primary" v-on:click="getData">模擬大路</button>
+
+            <div class="col-2" style="margin-right: 0; padding-right: 0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">最長長龍</span>
+                    </div>
+                    <input type="text" placeholder="default: 6" class="form-control" v-model="maxLength">
+                </div>
+            </div>
+
+            <div class="col-2" style="margin-right: 0; padding-right: 0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">單跳出現次數</span>
+                    </div>
+                    <input type="text" placeholder="default: 0" class="form-control" v-model="singleJumpTimes">
+                </div>
+            </div>
+
+            <div class="col-2" style="margin-right: 0; padding-right: 0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">單跳連續次數</span>
+                    </div>
+                    <input type="text" placeholder="default: 0" class="form-control" v-model="singleJumpMax">
+                </div>
+            </div>
+
+            <div class="col-2" style="margin-right: 0; padding-right: 0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">雙跳出現次數</span>
+                    </div>
+                    <input type="text" placeholder="default: 0" class="form-control" v-model="doubleJumpTimes">
+                </div>
+            </div>
+
+            <div class="col-2" style="margin-right: 0; padding-right: 0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">雙跳連續次數</span>
+                    </div>
+                    <input type="text" placeholder="default: 0" class="form-control" v-model="doubleJumpMax">
+                </div>
+            </div>
+
+            <!-- <div class="row" style="margin: 20px 0;"></div> -->
+
+
+
+
+
+
+        </div>
+        <div class="row" style="margin: 20px 0">
+            <div class="col-2">
+                <button id="starts" class="btn btn-primary" v-on:click="getData" style="width: 100%">模擬大路</button>
             </div>
         </div>
 
@@ -132,6 +191,11 @@
                 showedRoad: [],
                 showedPage: 0,
                 cutPosition: "", // 切牌位置
+                singleJumpTimes: "", 
+                singleJumpMax: "",
+                doubleJumpTimes: "",
+                doubleJumpMax: "",
+                maxLength: "",
                 maxX: 30,
                 maxY: 12
             },
@@ -139,13 +203,29 @@
                 getData: function () {
                     let self = this;
                     self.isLoading = true
-                    cut = self.cutPosition !== null ? Number(self.cutPosition) : null;
+
+                    var cut = self.cutPosition !== "" ? Number(self.cutPosition) : null;
+
+                    var maxLength = self.maxLength !== "" ? Number(self.maxLength) : 6;
+                    console.log("maxLength: ", maxLength);
+
+                    var singleJumpTimes = self.singleJumpTimes !== "" ? Number(self.singleJumpTimes) : 0;
+
+                    var singleJumpMax = self.singleJumpMax !== "" ? Number(self.singleJumpMax) : 0;
+                    console.log("singeJumpMax: ", singleJumpMax);
+
+                    var doubleJumpTimes = self.doubleJumpTimes !== "" ? Number(self.doubleJumpTimes) : 0;
+                    console.log("doubleJumpTimes: ", doubleJumpTimes);
+
+                    var doubleJumpMax = self.doubleJumpMax !== "" ? Number(self.doubleJumpMax) : 0;
+                    console.log("doubleJumpMax: ", doubleJumpMax);
+
 
                     self.roads = []
                     self.isLoading = false
 
                     for (var i = 0; i < 10; i++) {
-                        eel.getRoad(cut)()
+                        eel.getRoad(cut, maxLength, singleJumpTimes, singleJumpMax, doubleJumpTimes, doubleJumpMax)()
                             .then(res => {
                                 self.roads.push(res)
                             })
