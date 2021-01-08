@@ -54,7 +54,7 @@ class ReverseBJL:
         return [ math.floor(random.random() * formulaSize * ((ele + 1 ) if ele < half else (ele -1))) for ele in range(1, maxLength+1)]
 
 
-    def randomBuild(self, maxLength=6, singleJumpTimes=0, singleJumpMax=0, doubleJumpTimes=0, doubleJumpMax=0):
+    def randomBuild(self, maxLength=6, singleJumpTimes=0, singleJumpMax=4, doubleJumpTimes=0, doubleJumpMax=4):
         """
         1. maxLength: 最高長龍
         2. singleJumpTimes: 單跳出現的次數
@@ -68,11 +68,44 @@ class ReverseBJL:
         result = []  # 存花色點數
         rounds = []
         details = []
-        
-        # 最終結果
-        # numRounds = [random.randint(1, maxLength) for _ in range(25)]
-        numRounds = [random.choices(list(range(1, maxLength+1)), self.longCountDistribute(maxLength))[0] for _ in range(30)   ]
 
+        if singleJumpTimes or doubleJumpTimes:
+            # 組合最終結果
+            betweenLen = [random.randint(1,7) for _ in range(singleJumpTimes + doubleJumpTimes)]
+            frontLen = random.randint(1, 5)
+            backLen = 15
+
+            # shuffle single double array
+            potentials = [1] * singleJumpTimes + [2] * doubleJumpTimes
+            addedLen = random.sample(potentials, len(potentials))
+
+            # 備用 list
+            allRange = list(range(1, maxLength+1))
+            noSingle = list(filter(lambda ele: ele != 1, allRange))
+            noDouble = list(filter(lambda ele: ele != 2, allRange))
+
+            
+            # 組合
+            frontLists = [random.randint(1, maxLength) for _ in range(frontLen-1)]
+            betweenLists = []
+            for pattern in addedLen:
+                temp = []
+                target = singleJumpMax if pattern == 1 else doubleJumpMax
+                temp.append(random.choice(noSingle if pattern == 1 else noDouble))
+                temp += [pattern] * (random.randint(4, target) if target != 4 else 4)
+                temp.append(random.choice(noSingle if pattern == 1 else noDouble))
+                temp += [random.randint(1, maxLength) for _ in range(betweenLen.pop())]
+                betweenLists += temp
+
+            # 最終結果
+            # numRounds = [random.randint(1, maxLength) for _ in range(25)]
+            # numRounds = [random.choices(list(range(1, maxLength+1)), self.longCountDistribute(maxLength))[0] for _ in range(30)   ]
+            numRounds = frontLists + betweenLists + [random.randint(1, maxLength) for _ in range(backLen)]
+            
+        else:
+            numRounds = [random.randint(1, maxLength) for _ in range(25)]
+
+        """
         # 全部可取用index
         allRange = list(range(30-max([singleJumpMax, doubleJumpMax])))
 
@@ -86,6 +119,7 @@ class ReverseBJL:
                 numRounds[(tempPos+tempLen)] = random.randint(2,maxLength)
             allRange = list(filter(lambda ele: ele not in range(tempPos-2, tempPos+tempLen+2), allRange) )
             numRounds = numRounds[:tempPos] + [1]*tempLen + numRounds[(tempPos+tempLen):]
+        
         
         # 嵌入雙跳
         for dAdd in range(doubleJumpTimes):
@@ -106,6 +140,7 @@ class ReverseBJL:
             allRange = list(filter(lambda ele: ele not in range(tempPos-2, tempPos+tempLen+2), allRange) )
             numRounds = numRounds[:tempPos] + [2]*tempLen + numRounds[(tempPos+tempLen):]
 
+        """
         # 決定第一長龍的贏家 
         currentWinner = random.choice(['庄', '閑'])
 
@@ -205,7 +240,7 @@ class ReverseBJL:
                 # 如果和局, 用 1:9 決定是否保留 (留:1, 去:9)
                 canBeEven = False
                 if winner == "和":
-                    canBeEven = random.choices([True, False], [21, 79])[0]
+                    canBeEven = random.choices([True, False], [30, 50])[0]
                 
                 if winner == currentWinner or canBeEven:
                     rounds.append(winner)
@@ -249,6 +284,6 @@ class ReverseBJL:
 
 
 rBJL = ReverseBJL()
-# rBJL.randomBuild(maxLength=6, singleJumpTimes=1, singleJumpMax=6, doubleJumpTimes=1, doubleJumpMax=5)
+rBJL.randomBuild(maxLength=7, singleJumpTimes=1, singleJumpMax=6, doubleJumpTimes=0, doubleJumpMax=4)
 # print(rBJL.longCountDistribute(maxLength=6))
-random.randrange(0,1)
+# random.randrange(0,1)

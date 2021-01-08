@@ -22,6 +22,7 @@
             height: 32px;
             float: right;
             margin-top: 5px;
+            margin-right: 25px;
             font-family: serif;
         }
 
@@ -104,7 +105,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">單跳連續次數</span>
                     </div>
-                    <input type="text" placeholder="default: 0" class="form-control" v-model="singleJumpMax">
+                    <input type="text" placeholder="default: 4" class="form-control" v-model="singleJumpMax">
                 </div>
             </div>
 
@@ -122,7 +123,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">雙跳連續次數</span>
                     </div>
-                    <input type="text" placeholder="default: 0" class="form-control" v-model="doubleJumpMax">
+                    <input type="text" placeholder="default: 4" class="form-control" v-model="doubleJumpMax">
                 </div>
             </div>
 
@@ -143,7 +144,7 @@
         <div v-if="!isLoading" id="road-container">
 
             <div class="row">
-                <div class="col-5" id="road-holder" style="margin-bottom: 20px;"></div>
+                <div class="col-7" id="road-holder" style="margin-bottom: 20px;"></div>
             </div>
 
         </div>
@@ -196,7 +197,7 @@
                 doubleJumpTimes: "",
                 doubleJumpMax: "",
                 maxLength: "",
-                maxX: 30,
+                maxX: 42,
                 maxY: 12
             },
             methods: {
@@ -211,13 +212,13 @@
 
                     var singleJumpTimes = self.singleJumpTimes !== "" ? Number(self.singleJumpTimes) : 0;
 
-                    var singleJumpMax = self.singleJumpMax !== "" ? Number(self.singleJumpMax) : 0;
+                    var singleJumpMax = self.singleJumpMax !== "" ? Number(self.singleJumpMax) : 4;
                     console.log("singeJumpMax: ", singleJumpMax);
 
                     var doubleJumpTimes = self.doubleJumpTimes !== "" ? Number(self.doubleJumpTimes) : 0;
                     console.log("doubleJumpTimes: ", doubleJumpTimes);
 
-                    var doubleJumpMax = self.doubleJumpMax !== "" ? Number(self.doubleJumpMax) : 0;
+                    var doubleJumpMax = self.doubleJumpMax !== "" ? Number(self.doubleJumpMax) : 4;
                     console.log("doubleJumpMax: ", doubleJumpMax);
 
 
@@ -227,6 +228,7 @@
                     for (var i = 0; i < 10; i++) {
                         eel.getRoad(cut, maxLength, singleJumpTimes, singleJumpMax, doubleJumpTimes, doubleJumpMax)()
                             .then(res => {
+                                console.log(res)
                                 self.roads.push(res)
                             })
                             .catch(error => {
