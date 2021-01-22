@@ -47,13 +47,6 @@ class ReverseBJL:
         # 計算補牌後點數
         return (pointBefore + self.getNumber(addedCard)) % 10
 
-    def longCountDistribute(self, maxLength=6):
-        half = maxLength // 2
-        formulaSize = 20 // maxLength 
-        
-        return [ math.floor(random.random() * formulaSize * ((ele + 1 ) if ele < half else (ele -1))) for ele in range(1, maxLength+1)]
-
-
     def randomBuild(self, maxLength=6, singleJumpTimes=0, singleJumpMax=4, doubleJumpTimes=0, doubleJumpMax=4):
         """
         1. maxLength: 最高長龍
@@ -283,7 +276,7 @@ class ReverseBJL:
 
 
 
-rBJL = ReverseBJL()
-rBJL.randomBuild(maxLength=7, singleJumpTimes=1, singleJumpMax=6, doubleJumpTimes=0, doubleJumpMax=4)
+# rBJL = ReverseBJL()
+# rBJL.randomBuild(maxLength=7, singleJumpTimes=1, singleJumpMax=6, doubleJumpTimes=0, doubleJumpMax=4)
 # print(rBJL.longCountDistribute(maxLength=6))
 # random.randrange(0,1)
