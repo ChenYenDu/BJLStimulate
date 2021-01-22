@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Boostrap CSS -->
+    <link rel="stylesheet" href="./css/libs/bootstrap.min.css">
+    <script src="./js/libs/vue.min.js"></script>
+    <script type="text/javascript" src="./eel.js"></script>
+    <script src="./js/libs/jquery-3.5.1.min.js"></script>
+    <script src="./js/libs/popper.min.js"></script>
+    <script src="./js/libs/bootstrap.min.js"></script>
+    <script src="./js/libs/d3.min.js"></script>
+
+    <title>BJL模擬Ver2</title>
+    <style>
+       
+    </style>
+
+</head>
+
+<body>
+    <nav class="navbar navbar-expand navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">百家樂模擬</a>
+    </nav>
+    <div id="app" class="container-fluid" style="margin-top: 20px;">
+
+        <!-- <div class="row" style="margin: 20px 0;">
+            <div class="col-1">
+                <button id="shuffled" class="btn btn-primary" v-on:click="getData">模擬大路</button>
+            </div>
+        </div> -->
+
+       
+        <div class="row" style="margin: 20px 0">
+            <div class="col-2">
+                <button id="starts" class="btn btn-primary" v-on:click="getData" style="width: 100%">模擬大路</button>
+            </div>
+        </div>
+
+        <div v-if="!isLoading" id="road-container">
+
+            <div class="row">
+                <div class="col-7" id="road-holder" style="margin-bottom: 20px;"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                result: {},
+                isLoading: true
+            },
+            methods: {
+                getData: function () {
+                    let self = this;
+                    self.isLoading = true
+
+                    self.isLoading = false
+
+                    eel.getMultiRoad()()
+                        .then(res => {
+                            console.log(res)
+                            self.result = res
+                        })
+                        .catch(error => {
+                            self.isLoading = true
+                            console.log(error)
+                        })
+                        .finally(() => {
+                            self.isLoading = false
+                        })
+
+                    
+                },
+                reCalRoad: function (data) {
+                    let self = this;
+                    // 深複製 resultCollect -> 避免 watch 產生無限迴圈 
+                    var rc = JSON.parse(JSON.stringify(data));
+
+                    // x 從 1 開始
+                    // y 從 1 開始
+                    // maxX 紀錄 長龍數
+                    // maxY 紀錄高 長龍
+                    var currX = 1
+                    var currY = 1
+                    var result = []
+
+                    // 取得第一個 不是和
+                    var firstNotEven = rc.filter(d => d !== "和")[0]
+
+                    // 取出第一個結果
+                    var currRecord = rc.shift()
+
+                    var tempRecord = {
+                        x: currX,
+                        y: currY,
+                        result: currRecord,
+                        fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "green"
+                    }
+
+                    result.push(tempRecord)
+
+                    // 避免第一個結果是 “和”
+                    // 先指定為第一個非和的值
+                    if (currRecord === "和") {
+                        currRecord = firstNotEven
+                    }
+
+                    while (rc.length > 0) {
+                        // 紀錄 上一個 值
+                        var prevRecord = currRecord
+                        var currRecord = rc.shift()
+
+                        // 如果 prevRecord !== currRecord
+                        if (prevRecord !== currRecord && currRecord !== '和') {
+
+                            currX += 1
+
+                            // 判斷所有路途最大X
+                            if (currX > self.maxX) {
+                                self.maxX = currX
+                            }
+
+                            // 判斷所有路途最大 Y
+                            // if (currY > self.maxY) {
+                            //     self.maxY = currY
+                            // }
+                            currY = 1
+                        } else {
+                            // prevRecord === currRecord or currRecord === "和"
+                            // currY += 1
+                            currY += 1
+                        }
+
+
+                        tempRecord = {
+                            x: currX,
+                            y: currY,
+                            result: currRecord,
+                            fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "green"
+                        }
+
+                        result.push(tempRecord)
+
+                        if (currRecord === "和") {
+                            currRecord = prevRecord
+                        }
+
+                    }
+
+                    return result
+
+                },
+                plotRoad: function (rc, svgNumber) {
+                    let self = this;
+
+                    const xAxisRange = [...Array(self.maxX).keys()];
+                    const yAxisRange = [...Array(self.maxY).keys()];
+
+                    const margin = {
+                        top: 20,
+                        right: 20,
+                        bottom: 20,
+                        left: 30
+                    }
+
+                    const circleR = 12
+
+                    const width = 800;
+                    const height = 300;
+
+                    const innerWidth = width - margin.left - margin.right;
+                    const innerHeight = height - margin.top - margin.bottom;
+
+
+                    svgCheck = document.getElementById(`road${svgNumber}`)
+
+                    if (svgCheck === null) {
+                        var svg = d3.select('#road-holder')
+                            .append('svg')
+                            .attr('id', `road${svgNumber}`)
+                            .attr('width', self.maxX * circleR * 2 * 1.1)
+                            .attr('height', 300);
+                    } else {
+                        var svg = d3.select(`road${svgNumber}`);
+                    }
+
+                    svg.selectAll("*").remove();
+
+                    self.chart = svg.append('g')
+                        .attr('transform', `translate(${margin.left}, 0)`);
+
+                    const roads = svg.selectAll('roadCell')
+                        .data(rc)
+                        .enter().append('circle')
+                        .attr('cx', d => (d.x + 1) * circleR * 2)
+                        .attr('cy', d => (d.y + 1) * circleR * 2)
+                        .attr('r', circleR)
+                        .style('fill', d => d.fill)
+                        .style('stroke', 'solid')
+                        .style('stroke-color', d => d.fill);
+
+                    // create table grids
+                    const tableGrid = []
+                    for (var i = 1; i < self.maxX + 1; i++) {
+                        for (var j = 1; j < self.maxY + 1; j++) {
+                            tableGrid.push({
+                                x: i,
+                                y: j
+                            })
+                        }
+                    }
+
+                    const squares = svg.selectAll('sqCell')
+                        .data(tableGrid)
+                        .enter().append('rect')
+                        .attr('x', d => (d.x + 0.5) * circleR * 2)
+                        .attr('y', d => (d.y + 0.5) * circleR * 2)
+                        .attr('width', circleR * 2)
+                        .attr('height', circleR * 2)
+                        .style('fill', "None")
+                        .style('stroke', 'black')
+                        .style('stroke-widht', '1px')
+
+
+                    var div = document.createElement("div");
+                    div.id = `button-${svgNumber}`
+                    div.classList = "button-holder btn btn-primary";
+                    div.innerHTML = "顯示牌"
+                    var body = document.getElementById('road-holder');
+                    body.appendChild(div);
+
+                    div.addEventListener('click', function () {
+                        var modal = new bootstrap.Modal(document.getElementById('model-test'), {
+                            keyboard: true
+                        })
+                        self.showedPage = 0
+                        self.currentShow = svgNumber - 1;
+                        self.showedRoad = self.roads[svgNumber - 1]['results'].slice(self
+                            .showedPage * 100, self.showedPage * 100 + 100)
+                        modal.show();
+                    })
+
+                }
+
+            },
+            compute: {
+
+            },
+            mounted: function () {
+                // document.getElementById('cutPosition').addEventListener('keyup', function (event) {
+                //     event.preventDefault();
+                //     if (event.keyCode === 13) {
+                //         document.getElementById("starts").click();
+                //     }
+                // })
+            },
+            watch: {
+                roads: function (newArr, oldArr) {
+                    if (newArr.length === 0 || oldArr.length === 0) {
+                        [...document.getElementsByClassName('button-holder')].map(n => n && n.remove());
+                        d3.select('#road-container').selectAll('svg').remove("*");
+                    }
+                    if (newArr.length !== 0) {
+                        var totalLength = newArr.length;
+                        var temp = JSON.parse(JSON.stringify(newArr)).pop();
+                        this.plotRoad(this.reCalRoad(temp['rounds']), totalLength)
+                    }
+
+                },
+                showedPage: function (page) {
+                    var cards = this.roads[this.currentShow]['results'].slice(page * 100, page * 100 + 100)
+                    this.showedRoad = cards
+                },
+            }
+
+        })
+    </script>
+
+
+
+</body>
+
+</html>
