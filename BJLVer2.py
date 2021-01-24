@@ -11,171 +11,248 @@ class BJLVer2:
         self.shuffled = self.shuffledCards()
 
     def shuffledCards(self):
+        """
+        洗牌功能
+        """
         shuffledCards = random.sample(self.all_cards, 416)
         return shuffledCards
     
     def cutCards(self, position):
+        """
+        切牌功能
+        """
         return self.shuffled[position:] + self.shuffled[:position]
 
     def getNumber(self, card):
-        # 撲克牌點數 -> 百家樂點數
+        """
+        計算單張牌的點數
+        """
         return 10 if (int(card[2:])) // 10  else int(card[2:])
 
     def getPoint(self, cards):
-        # 計算手牌點數
+        """
+        計算牌組點數
+        """
         point = sum([self.getNumber(ele) for ele in cards]) % 10
         return point
-
-    def getWinner(self, pc, bc, sc):
-        '''
-            pc: playerCards
-            bc: bankCards
-            sc = substituteCards
-        '''
-        
-        try:
-            playerPoint = sum([
-                self.getNumber(ele) for ele in pc
-            ] ) % 10
-        except:
-            print("player point calculation error")
-
-
-        
-        try:
-            bankerPoint = sum([
-                self.getNumber(ele) for ele in bc
-            ] ) % 10
-        except:
-            print("banker point calculation error")
-
-        playerAdd = None
-        prevPlayerPoint = playerPoint
-
-        try: 
-            if playerPoint <= 5:
-                # 閑點數小於等於 5 補牌
-                # prevPlayerPoint = playerPoint
-                playerAdd = sc.pop(0)
-                playerPoint = (playerPoint + self.getNumber(playerAdd)) % 10
-                pc.append(playerAdd)
-        except:
-            print("player add card error")
-
-        try:
-            if bankerPoint <= 5:
-                # 庄 點數小於 5 補牌
-                bankerAdd = sc.pop(0)
-                bankerPoint = (bankerPoint + self.getNumber(bankerAdd)) % 10
-                bc.append(bankerAdd)
-
-            elif bankerPoint == 6:
-                # 如果閑補牌 且 補牌為 6 或 7 
-                # 庄補牌
-                if prevPlayerPoint <= 5 and playerAdd in [6, 7]:
-                    bankerPoint = (bankerPoint + self.getNumber(sc.pop(0))) % 10
-                    bc = bc.append(sc.pop(0))
-            else:
-                pass
-        except:
-            print('banker add card error')
-            print("player: ", pc, r"\n\rbanker: ", bc, r"\n\rsc: ", sc)
-        
-        winner = '閑' if playerPoint > bankerPoint else '和' if playerPoint == bankerPoint else '庄'
-
-        return playerPoint, bankerPoint, winner, pc, bc, sc
-
+    
     def pointAfterAdd(self, pointBefore, addedCard):
-        # 計算補牌後點數
+        """
+        計算補牌後點數
+        pointBefore: 補牌前點數
+        addedCard: 補牌
+        """
         return (pointBefore + self.getNumber(addedCard)) % 10
 
-    def getRoad(self, cardSets):
-                
-        pleyerWin = 0
-        dealerWin = 0
+    def getWinner(self, player, banker, backup):
+        """
+        計算當局贏家
+        player: 閑家補牌前牌組
+        banker: 莊家補牌前牌組
+        backup: 補牌牌組
+        """
 
-        roundRecord = []
-        bankerRound = []
-        playerRound = []
-        roadRecord = []
+        playerPoint = self.getPoint(player)
+        bankerPoint = self.getPoint(banker)
 
-        playerCards = []
-        bankerCards = []
-        substituteCards = []
+        # 判斷 閑家 是否須要補牌
+        doPlayerAddCard = playerPoint < 6
+
+        # 補排規則
+        # 閑家只要小於 6 就要補牌
+        if doPlayerAddCard:
+            playerAddCard = backup.pop(0)
+            playerPoint = self.pointAfterAdd(playerPoint, playerAddCard)
+            player.append(player.append(playerAddCard))
+        
+        # 莊家補牌規則
+        # 莊家 > 6: 不補牌
+        if bankerPoint <= 6:
+            if bankerPoint == 6:       # 莊家 = 6
+                if doPlayerAddCard:    # 閑家補牌
+                    if playerPoint in [6, 7]:  # 閒家補牌後點數: 6, 7 -> 補牌
+                        bankerAddCard = backup.pop(0)
+                        bankerPoint = self.pointAfterAdd(bankerPoint, bankerAddCard)
+                        banker.append(bankerAddCard)
+
+            elif bankerPoint == 5:     # 莊家 = 5:
+                if doPlayerAddCard:    # 閒家補牌
+                    if playerPoint in [4,5,6,7]:  #閒家補牌後點數: 4, 5, 6, 7 -> 補牌
+                        bankerAddCard = backup.pop(0)
+                        bankerPoint = self.pointAfterAdd(bankerPoint, bankerAddCard)
+                        banker.append(bankerAddCard)
+                else:     # 閒家不補牌, 莊家直接補牌
+                    bankerAddCard = backup.pop(0)
+                    bankerPoint = self.pointAfterAdd(bankerPoint, bankerAddCard)
+                    banker.append(bankerAddCard)
+            
+            elif bankerPoint == 4: # 莊家 = 4
+                if doPlayerAddCard: # 閑家補牌
+                    if playerPoint not in [0, 1, 8, 9]:   # 閒家補牌後點數:0,1,8,9 -> 補牌
+                        bankerAddCard = backup.pop(0)
+                        bankerPoint = self.pointAfterAdd(bankerPoint, bankerAddCard)
+                        banker.append(bankerAddCard)
+                else: # 閑家不補牌, 莊家直接補牌
+                    bankerAddCard = backup.pop(0)
+                    bankerPoint = self.pointAfterAdd(bankerPoint, bankerAddCard)
+                    banker.append(bankerAddCard)
+            
+            elif bankerPoint == 3:  # 莊家 = 3
+                if doPlayerAddCard:
+                    if playerPoint != 8:
+                        bankerAddCard = backup.pop(0)
+                        bankerPoint = self.pointAfterAdd(bankerPoint, bankerAddCard)
+                        banker.append(bankerAddCard)
+                else: # 閒家不補牌, 莊家直接補牌
+                    bankerAddCard = backup.pop(0)
+                    bankerPoint = self.pointAfterAdd(bankerPoint, bankerAddCard)
+                    banker.append(bankerAddCard)
+            
+            else: # 莊家 <= 2 直接補牌
+                bankerAddCard = backup.pop(0)
+                bankerPoint = self.pointAfterAdd(bankerPoint, bankerAddCard)
+                banker.append(bankerAddCard)
+            
+        # 確認贏家
+        winner = "閑" if playerPoint > bankerPoint else "和" if playerPoint == bankerPoint else "庄"
+
+        return winner, player, banker, backup
+
+    def getRoad(self, cards):
+        """
+        計算開出輸贏結果路詳細情況
+        cardSets: 切牌後牌組
+        """
+        cardSets = cards.copy()
+        rounds = []
+
+        longCount = 0
 
         n = 0
-        
-        while cardSets and len(cardSets) > 6:
-            subLength = len(substituteCards)
-            # print("")
-            # print("---- Round ", n, ' starts ----')
 
-            # 補牌剩餘情況: 目前寫死
-            if subLength == 0:
-                playerCards.append(cardSets.pop(0))
-                bankerCards.append(cardSets.pop(0))
-                playerCards.append(cardSets.pop(0))
-                bankerCards.append(cardSets.pop(0))
-                substituteCards += cardSets[0:2]
-                del cardSets[0:2]
+        while len(cardSets) > 6:
 
-            elif subLength == 1:
-                playerCards.append(substituteCards.pop(0))
-                bankerCards.append(cardSets.pop(0))
-                playerCards.append(cardSets.pop(0))
-                bankerCards.append(cardSets.pop(0))
-                substituteCards += cardSets[0:2]
-                del cardSets[0:2]
-
-            else:
-                playerCards.append(substituteCards.pop(0))
-                bankerCards.append(substituteCards.pop(0))
-                playerCards.append(cardSets.pop(0))
-                bankerCards.append(cardSets.pop(0))
-                substituteCards += cardSets[0:2]
-                del cardSets[0:2]
-
-
-            # 計算點數 判斷輸贏
-            playerPoint, bankerPoint, winner, playerCards, bankerCards, substituteCards = self.getWinner(playerCards, bankerCards, substituteCards)
-            # print("    --> Winner Calculated....")
-
-            # 存牌局結果
-            currentRecord = {
-                    "閑": playerCards,
-                    "庄": bankerCards,
-                    "補": substituteCards,
-                    'pp': playerPoint,
-                    'bp': bankerPoint,
-                    'winner': winner,
-                }
-            
-            
-            # 存牌局結果
-            roundRecord.append(currentRecord)
-
-            if winner == "庄":
-                bankerRound.append(currentRecord)
-            
-            if winner == "閑":
-                playerRound.append(currentRecord)
-
-            if winner == "和":
-                picker = random.randint(0, 10)
-                if picker % 2 :
-                    bankerRound.append(currentRecord)
-                else:
-                    playerRound.append(currentRecord)
-                
-            # 存 庄閑贏 算路圖
-            roadRecord.append(winner)
-
-            n += 1
             playerCards = []
             bankerCards = []
+            backupCards = []
+            
+            while len(playerCards) < 2 and len(bankerCards) < 2:
+                playerCards.append(cardSets.pop(0))
+                bankerCards.append(cardSets.pop(0))
+            
+            for _ in range(2):
+                backupCards.append(cardSets.pop(0))
+            try:
+                winner, playerCards, bankerCards, backupCards = self.getWinner(playerCards, bankerCards, backupCards)
+            except:
+                print(n)
+                print("cards: ", cards)
+                print("cardSets: ", cardSets)
+                print("playerCard: ", playerCards)
+                print('bankerCard: ', bankerCards)
+                print('backupCards: ', backupCards)
+
+            # rounds.append(winner)
+            rounds.append({
+                'player': playerCards,
+                'banker': bankerCards,
+                'winner': winner,
+            })
+            n += 1
+
+            if len(backupCards) > 0:
+                cards = backupCards + cards
+
+
+        return rounds
+
+    
+    def getStatic(self, rou):
+
+        rounds = [ele['winner'] for ele in rou]
         
-        # return roundRecord, roadRecord, bankerRound, playerRound
-        return roadRecord
+        currX = 1
+        currY = 1
+        result = []
+
+        maxY = 0
+        maxSingleJump = 0
+        maxDoubleJump = 0
+        
+
+        firstNotEven = list(filter(lambda ele: ele != "和", rounds))[0]
+
+        currRecord = rounds.pop(0)
+        
+        tempRecord = {
+            'x': currX,
+            'y': currY,
+            'result': currRecord,
+            'fill': 'red' if currRecord == "閑" else "blue" if currRecord == "庄" else 'green'
+        }
+
+        result.append(tempRecord)
+
+        currLWE = 1 # 紀錄單一路無和長度
+
+        # 避免第一結果是 “和”
+        # 指定為第一個非何得值
+        if currRecord == "和":
+            currRecord = firstNotEven
+            currLWE = 0
+        
+        singleJump = 0
+        doubleJump = 0
+
+        while rounds:
+            prevRecord  = currRecord
+            currRecord = rounds.pop(0)
+
+            # 後者不等於前者｜和
+            if currRecord not in [prevRecord, "和"]:
+                
+                # 換路
+                currX += 1
+                currY = 1
+
+                if currLWE != 1:
+                    if singleJump > maxSingleJump:
+                        maxSingleJump = singleJump
+                    singleJump = 0
+                else:
+                    singleJump += 1
+
+                if currLWE != 2:
+                    if doubleJump > maxDoubleJump:
+                        maxDoubleJump = doubleJump
+                    doubleJump = 0
+                else:
+                    doubleJump += 1
+
+                if  currLWE > maxY:
+                    maxY = currLWE
+
+                currLWE = 0
+            
+            else:
+                currY += 1
+                
+                if currRecord != "和":
+                    currLWE += 1
+            
+            result.append({
+                'x': currX,
+                'y': currY,
+                'result': currRecord,
+                'fill': 'red' if currRecord == "閑" else "blue" if currRecord == "庄" else 'green'
+            })
+
+        return {
+            'result': result,
+            'static': {'maxY':maxY, 'maxSingleJump': maxSingleJump, 'maxDoubleJump': maxDoubleJump}
+            }
+
+        
 
     def roadLoop(self):
         
@@ -185,10 +262,13 @@ class BJLVer2:
         for pos in range(190, 241):
             
             cuttedCard = self.cutCards(pos)
-            result[str(pos)] = self.getRoad(cuttedCard)
+            roads = self.getRoad(cuttedCard)
+            maps = self.getStatic(roads)
+            result[str(pos)] = {'road': roads, 'maps':maps, 'cards': cuttedCard}
 
         return result
 
 # bjl = BJLVer2()
+# bjl.getRoad(bjl.shuffled)
 # temp = bjl.roadLoop()
 # print(temp)

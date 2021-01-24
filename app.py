@@ -9,7 +9,7 @@ def getMultiRoad():
     multiRoad = BJL.roadLoop()
     realCard = BJL.shuffled
 
-    return {'multiRaod': multiRoad, 'realCard': realCard}
+    return {'multiRoad': multiRoad, 'realCard': realCard}
 
 eel.init('web', allowed_extensions=['.js', '.html', '.css'])
 eel.start('ver2.html')

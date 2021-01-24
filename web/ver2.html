@@ -57,20 +57,23 @@
         var app = new Vue({
             el: '#app',
             data: {
-                result: {},
-                isLoading: true
+                multiRoads: {},
+                realCards: [],
+                isLoading: true,
+                maxX: 40,
+                maxY: 15
             },
             methods: {
                 getData: function () {
                     let self = this;
                     self.isLoading = true
-
                     self.isLoading = false
 
                     eel.getMultiRoad()()
                         .then(res => {
-                            console.log(res)
-                            self.result = res
+                            console.log(res);
+                            self.multiRoads = res.multiRoad;
+                            self.realCards = res.realCards;
                         })
                         .catch(error => {
                             self.isLoading = true
@@ -81,85 +84,6 @@
                         })
 
                     
-                },
-                reCalRoad: function (data) {
-                    let self = this;
-                    // 深複製 resultCollect -> 避免 watch 產生無限迴圈 
-                    var rc = JSON.parse(JSON.stringify(data));
-
-                    // x 從 1 開始
-                    // y 從 1 開始
-                    // maxX 紀錄 長龍數
-                    // maxY 紀錄高 長龍
-                    var currX = 1
-                    var currY = 1
-                    var result = []
-
-                    // 取得第一個 不是和
-                    var firstNotEven = rc.filter(d => d !== "和")[0]
-
-                    // 取出第一個結果
-                    var currRecord = rc.shift()
-
-                    var tempRecord = {
-                        x: currX,
-                        y: currY,
-                        result: currRecord,
-                        fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "green"
-                    }
-
-                    result.push(tempRecord)
-
-                    // 避免第一個結果是 “和”
-                    // 先指定為第一個非和的值
-                    if (currRecord === "和") {
-                        currRecord = firstNotEven
-                    }
-
-                    while (rc.length > 0) {
-                        // 紀錄 上一個 值
-                        var prevRecord = currRecord
-                        var currRecord = rc.shift()
-
-                        // 如果 prevRecord !== currRecord
-                        if (prevRecord !== currRecord && currRecord !== '和') {
-
-                            currX += 1
-
-                            // 判斷所有路途最大X
-                            if (currX > self.maxX) {
-                                self.maxX = currX
-                            }
-
-                            // 判斷所有路途最大 Y
-                            // if (currY > self.maxY) {
-                            //     self.maxY = currY
-                            // }
-                            currY = 1
-                        } else {
-                            // prevRecord === currRecord or currRecord === "和"
-                            // currY += 1
-                            currY += 1
-                        }
-
-
-                        tempRecord = {
-                            x: currX,
-                            y: currY,
-                            result: currRecord,
-                            fill: currRecord === "閑" ? "red" : currRecord === "庄" ? "blue" : "green"
-                        }
-
-                        result.push(tempRecord)
-
-                        if (currRecord === "和") {
-                            currRecord = prevRecord
-                        }
-
-                    }
-
-                    return result
-
                 },
                 plotRoad: function (rc, svgNumber) {
                     let self = this;
@@ -184,6 +108,7 @@
 
 
                     svgCheck = document.getElementById(`road${svgNumber}`)
+                    console.log(svgCheck)
 
                     if (svgCheck === null) {
                         var svg = d3.select('#road-holder')
@@ -191,11 +116,13 @@
                             .attr('id', `road${svgNumber}`)
                             .attr('width', self.maxX * circleR * 2 * 1.1)
                             .attr('height', 300);
+
                     } else {
                         var svg = d3.select(`road${svgNumber}`);
+                        svg.selectAll("*").remove();
                     }
 
-                    svg.selectAll("*").remove();
+                    
 
                     self.chart = svg.append('g')
                         .attr('transform', `translate(${margin.left}, 0)`);
@@ -233,23 +160,6 @@
                         .style('stroke-widht', '1px')
 
 
-                    var div = document.createElement("div");
-                    div.id = `button-${svgNumber}`
-                    div.classList = "button-holder btn btn-primary";
-                    div.innerHTML = "顯示牌"
-                    var body = document.getElementById('road-holder');
-                    body.appendChild(div);
-
-                    div.addEventListener('click', function () {
-                        var modal = new bootstrap.Modal(document.getElementById('model-test'), {
-                            keyboard: true
-                        })
-                        self.showedPage = 0
-                        self.currentShow = svgNumber - 1;
-                        self.showedRoad = self.roads[svgNumber - 1]['results'].slice(self
-                            .showedPage * 100, self.showedPage * 100 + 100)
-                        modal.show();
-                    })
 
                 }
 
@@ -266,22 +176,32 @@
                 // })
             },
             watch: {
-                roads: function (newArr, oldArr) {
-                    if (newArr.length === 0 || oldArr.length === 0) {
-                        [...document.getElementsByClassName('button-holder')].map(n => n && n.remove());
-                        d3.select('#road-container').selectAll('svg').remove("*");
+                multiRoads: function(newVal, oldVal) {
+                    let self = this;
+                    console.log('realCards changed')
+                    // console.log(self.multiRoads)
+                    for (var temp in self.multiRoads){
+                        console.log(temp)
+                        // console.log(self.multiRoads[temp]['maps']['result'])
+                        self.plotRoad(self.multiRoads[temp]['maps']['result'], temp)
                     }
-                    if (newArr.length !== 0) {
-                        var totalLength = newArr.length;
-                        var temp = JSON.parse(JSON.stringify(newArr)).pop();
-                        this.plotRoad(this.reCalRoad(temp['rounds']), totalLength)
-                    }
+                }
+                // roads: function (newArr, oldArr) {
+                //     if (newArr.length === 0 || oldArr.length === 0) {
+                //         [...document.getElementsByClassName('button-holder')].map(n => n && n.remove());
+                //         d3.select('#road-container').selectAll('svg').remove("*");
+                //     }
+                //     if (newArr.length !== 0) {
+                //         var totalLength = newArr.length;
+                //         var temp = JSON.parse(JSON.stringify(newArr)).pop();
+                //         this.plotRoad(this.reCalRoad(temp['rounds']), totalLength)
+                //     }
 
-                },
-                showedPage: function (page) {
-                    var cards = this.roads[this.currentShow]['results'].slice(page * 100, page * 100 + 100)
-                    this.showedRoad = cards
-                },
+                // },
+                // showedPage: function (page) {
+                //     var cards = this.roads[this.currentShow]['results'].slice(page * 100, page * 100 + 100)
+                //     this.showedRoad = cards
+                // },
             }
 
         })
