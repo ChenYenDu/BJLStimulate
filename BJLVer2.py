@@ -126,9 +126,6 @@ class BJLVer2:
         cardSets = cards.copy()
         rounds = []
 
-        longCount = 0
-
-        n = 0
 
         while len(cardSets) > 6:
 
@@ -152,13 +149,12 @@ class BJLVer2:
                 print('bankerCard: ', bankerCards)
                 print('backupCards: ', backupCards)
 
-            # rounds.append(winner)
-            rounds.append({
-                'player': playerCards,
-                'banker': bankerCards,
-                'winner': winner,
-            })
-            n += 1
+            rounds.append(winner)
+            # rounds.append({
+            #     'player': playerCards,
+            #     'banker': bankerCards,
+            #     'winner': winner,
+            # })
 
             if len(backupCards) > 0:
                 cards = backupCards + cards
@@ -169,21 +165,28 @@ class BJLVer2:
     
     def getStatic(self, rou):
 
-        rounds = [ele['winner'] for ele in rou]
+        # rounds = [ele['winner'] for ele in rou]
+        rounds = rou.copy()
         
         currX = 1
         currY = 1
+        maxLWE = 1
         result = []
 
-        maxY = 0
-        maxSingleJump = 0
-        maxDoubleJump = 0
-        
+        maxSingleJump = 0  # 最長單跳
+        maxDoubleJump = 0  # 最長雙跳 
 
+        # 取得第一個非 "和" 的值
         firstNotEven = list(filter(lambda ele: ele != "和", rounds))[0]
 
+        # 取得第一個值
         currRecord = rounds.pop(0)
+
+        # 長龍起始計算值, 如果第一個值是和需要從0計算
+        maxLWE = 0 if currRecord == "和" else 1
+        maxY = 1
         
+        # 紀錄每個值的轉換座標和顏色
         tempRecord = {
             'x': currX,
             'y': currY,
@@ -191,9 +194,10 @@ class BJLVer2:
             'fill': 'red' if currRecord == "閑" else "blue" if currRecord == "庄" else 'green'
         }
 
+        # 存回 result 
         result.append(tempRecord)
 
-        currLWE = 1 # 紀錄單一路無和長度
+        currLWE = 0 if currRecord == "和" else 1 # 紀錄單一路無和長度
 
         # 避免第一結果是 “和”
         # 指定為第一個非何得值
@@ -201,8 +205,8 @@ class BJLVer2:
             currRecord = firstNotEven
             currLWE = 0
         
-        singleJump = 0
-        doubleJump = 0
+        singleJump = 0  # 紀錄連續出現 1 長度
+        doubleJump = 0  # 紀錄連續出現 2 長度
 
         while rounds:
             prevRecord  = currRecord
@@ -213,8 +217,13 @@ class BJLVer2:
                 
                 # 換路
                 currX += 1
+
+                if currY > maxY:
+                    maxY = currY
+
                 currY = 1
 
+                # 檢查前者是否為 單跳
                 if currLWE != 1:
                     if singleJump > maxSingleJump:
                         maxSingleJump = singleJump
@@ -222,6 +231,7 @@ class BJLVer2:
                 else:
                     singleJump += 1
 
+                # 檢查雙跳
                 if currLWE != 2:
                     if doubleJump > maxDoubleJump:
                         maxDoubleJump = doubleJump
@@ -229,14 +239,20 @@ class BJLVer2:
                 else:
                     doubleJump += 1
 
-                if  currLWE > maxY:
-                    maxY = currLWE
+                # 檢查最長龍
+                if  currLWE > maxLWE:
+                    maxLWE = currLWE
 
-                currLWE = 0
+                # 非和 長龍計算器歸 0
+                currLWE = 1
+                
             
             else:
+                # 現值 == "和" or 前值
+                # y 值 + 1 x不變
                 currY += 1
                 
+                # 如果非和, 長龍計算器＋1
                 if currRecord != "和":
                     currLWE += 1
             
@@ -249,22 +265,29 @@ class BJLVer2:
 
         return {
             'result': result,
-            'static': {'maxY':maxY, 'maxSingleJump': maxSingleJump, 'maxDoubleJump': maxDoubleJump}
+            'static': {'maxLWE':maxLWE, 'maxY': maxY, 'maxX': currX, 'maxSingleJump': maxSingleJump, 'maxDoubleJump': maxDoubleJump}
             }
 
         
-
     def roadLoop(self):
         
         # 迴圈跑切排算路
-        result = {}
+        result = {'roads': {}}
+        maxX = 1
+        maxY = 1
 
         for pos in range(190, 241):
             
             cuttedCard = self.cutCards(pos)
             roads = self.getRoad(cuttedCard)
             maps = self.getStatic(roads)
-            result[str(pos)] = {'road': roads, 'maps':maps, 'cards': cuttedCard}
+            result['roads'][str(pos)] = {'road': roads, 'maps':maps}
+
+            maxX = maps['static']['maxX'] if maps['static']['maxX'] > maxX else maxX
+            maxY = maps['static']['maxY'] if maps['static']['maxY'] > maxY else maxY
+        
+        result['maxX'] = maxX
+        result['maxY'] = maxY
 
         return result
 

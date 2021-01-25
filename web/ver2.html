@@ -17,7 +17,6 @@
 
     <title>BJL模擬Ver2</title>
     <style>
-       
     </style>
 
 </head>
@@ -28,13 +27,6 @@
     </nav>
     <div id="app" class="container-fluid" style="margin-top: 20px;">
 
-        <!-- <div class="row" style="margin: 20px 0;">
-            <div class="col-1">
-                <button id="shuffled" class="btn btn-primary" v-on:click="getData">模擬大路</button>
-            </div>
-        </div> -->
-
-       
         <div class="row" style="margin: 20px 0">
             <div class="col-2">
                 <button id="starts" class="btn btn-primary" v-on:click="getData" style="width: 100%">模擬大路</button>
@@ -69,11 +61,15 @@
                     self.isLoading = true
                     self.isLoading = false
 
+                    var roadContainer = d3.select('#road-holder')
+                    roadContainer.selectAll('*').remove();
+
                     eel.getMultiRoad()()
                         .then(res => {
-                            console.log(res);
-                            self.multiRoads = res.multiRoad;
+                            self.multiRoads = res.multiRoad.roads;
                             self.realCards = res.realCards;
+                            self.maxX = res.multiRoad.maxX;
+                            self.maxY = res.multiRoad.maxY + 3;
                         })
                         .catch(error => {
                             self.isLoading = true
@@ -82,8 +78,6 @@
                         .finally(() => {
                             self.isLoading = false
                         })
-
-                    
                 },
                 plotRoad: function (rc, svgNumber) {
                     let self = this;
@@ -108,7 +102,6 @@
 
 
                     svgCheck = document.getElementById(`road${svgNumber}`)
-                    console.log(svgCheck)
 
                     if (svgCheck === null) {
                         var svg = d3.select('#road-holder')
@@ -119,10 +112,10 @@
 
                     } else {
                         var svg = d3.select(`road${svgNumber}`);
-                        svg.selectAll("*").remove();
+                        
                     }
 
-                    
+                    svg.selectAll("*").remove();
 
                     self.chart = svg.append('g')
                         .attr('transform', `translate(${margin.left}, 0)`);
@@ -137,19 +130,9 @@
                         .style('stroke', 'solid')
                         .style('stroke-color', d => d.fill);
 
-                    // create table grids
-                    const tableGrid = []
-                    for (var i = 1; i < self.maxX + 1; i++) {
-                        for (var j = 1; j < self.maxY + 1; j++) {
-                            tableGrid.push({
-                                x: i,
-                                y: j
-                            })
-                        }
-                    }
 
                     const squares = svg.selectAll('sqCell')
-                        .data(tableGrid)
+                        .data(self.tableGrid)
                         .enter().append('rect')
                         .attr('x', d => (d.x + 0.5) * circleR * 2)
                         .attr('y', d => (d.y + 0.5) * circleR * 2)
@@ -160,48 +143,37 @@
                         .style('stroke-widht', '1px')
 
 
-
                 }
 
             },
-            compute: {
+            computed: {
+                tableGrid: function() {
+                    let self = this;
 
+                    var tableGrid = []
+                    for (var i =1; i < self.maxX+1; i++){
+                        for (var j = 1; j < self.maxY; j++){
+                            tableGrid.push({
+                                x: i,
+                                y: j
+                            })
+                        }
+                    }
+
+                    return tableGrid
+                }
             },
             mounted: function () {
-                // document.getElementById('cutPosition').addEventListener('keyup', function (event) {
-                //     event.preventDefault();
-                //     if (event.keyCode === 13) {
-                //         document.getElementById("starts").click();
-                //     }
-                // })
+
             },
             watch: {
                 multiRoads: function(newVal, oldVal) {
                     let self = this;
-                    console.log('realCards changed')
-                    // console.log(self.multiRoads)
                     for (var temp in self.multiRoads){
-                        console.log(temp)
-                        // console.log(self.multiRoads[temp]['maps']['result'])
                         self.plotRoad(self.multiRoads[temp]['maps']['result'], temp)
                     }
                 }
-                // roads: function (newArr, oldArr) {
-                //     if (newArr.length === 0 || oldArr.length === 0) {
-                //         [...document.getElementsByClassName('button-holder')].map(n => n && n.remove());
-                //         d3.select('#road-container').selectAll('svg').remove("*");
-                //     }
-                //     if (newArr.length !== 0) {
-                //         var totalLength = newArr.length;
-                //         var temp = JSON.parse(JSON.stringify(newArr)).pop();
-                //         this.plotRoad(this.reCalRoad(temp['rounds']), totalLength)
-                //     }
 
-                // },
-                // showedPage: function (page) {
-                //     var cards = this.roads[this.currentShow]['results'].slice(page * 100, page * 100 + 100)
-                //     this.showedRoad = cards
-                // },
             }
 
         })
