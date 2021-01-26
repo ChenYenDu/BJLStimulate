@@ -17,7 +17,6 @@
 
     <title>BJL模擬Ver2</title>
     <style>
-
         svg {
             /* float: left; */
             display: inline-block;
@@ -28,10 +27,39 @@
             display: inline-block;
             vertical-align: middle;
             /* float: right; */
-            
+
         }
 
+        .card-holder {
+            width: 100%;
+            height: auto;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            /* justify-content: center; */
+            /* align-items: center; */
+        }
 
+        .card {
+            width: 5%;
+            height: auto;
+        }
+
+        .card-image {
+            width: 100%;
+            height: auto;
+        }
+
+        .pagebutton-holder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem 0;
+        }
+
+        .page-btn {
+            margin: 0 0.2rem;
+        }
     </style>
 
 </head>
@@ -43,9 +71,81 @@
     <div id="app" class="container-fluid" style="margin-top: 20px;">
 
         <div class="row" style="margin: 20px 0">
-            <div class="col-2">
-                <button id="starts" class="btn btn-primary" v-on:click="getData" style="width: 100%">模擬大路</button>
+
+            <div class="col-12">
+                <div class="row">
+
+                    <div class="col-2">
+                        <button id="starts" class="btn btn-primary" v-on:click="getData"
+                            style="width: 100%">模擬大路</button>
+                    </div>
+
+                    <div class="col-2">
+                        <button id="showCardbtn" class="btn btn-primary" v-on:click="showModal" style="width: 100%"
+                            v-if="!isLoading">顯示牌組</button>
+                    </div>
+
+                </div>
+
+                <!-- 篩選條件列 -->
+                <div class="row" v-if="!isLoading" style="margin: 20px 0">
+
+                    <div class="col-2" style="padding-left: 0">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">最高長龍</span>
+                            </div>
+                            <input type="text" placeholder="default: 6" class="form-control" v-model="maxLength">
+                        </div>
+                    </div>
+
+                    <div class="col-2" style="padding-left: 0">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">最長單跳</span>
+                            </div>
+                            <input type="text" placeholder="default: 4" class="form-control" v-model="maxSingleJump">
+                        </div>
+                    </div>
+
+                    <div class="col-2" style="padding-left: 0">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">最長雙跳</span>
+                            </div>
+                            <input type="text" placeholder="default: 4" class="form-control" v-model="maxDoubleJump">
+                        </div>
+                    </div>
+
+                    <div class="col-2">
+                        <button id="showCardbtn" class="btn btn-primary" v-on:click="filterSets"
+                            style="width: 100%">篩選牌組</button>
+                    </div>
+
+                    <div class="col-2">
+                        <button id="showCardbtn" class="btn btn-primary" v-on:click="recover" style="width: 100%"
+                            v-if="isFiltered">復原篩選</button>
+                    </div>
+
+                </div>
+
+                <hr>
+
+                <div class="row" v-if="isFiltered" style="margin: 20px 0">
+
+                    <div>
+                        <p><strong>符合條件數目: </strong> {{filterStat.goodNumber}}</p>
+                        <p><strong>符合切牌位置: </strong>
+                            <a v-for="(sets, index) in filterStat.goodSets" :href="`#road${sets}`">{{sets}}, </a>
+                        </p>
+
+                    </div>
+
+                </div>
+
+
             </div>
+
         </div>
 
         <div v-if="!isLoading" id="road-container">
@@ -54,6 +154,32 @@
                 <div class="col-7" id="road-holder" style="margin-bottom: 20px; width: 100%; min-width: 1800px;"></div>
             </div>
 
+        </div>
+
+        <div class="modal" id="model-test">
+            <div class="model-xl">
+                <div class="modal-content">
+
+                    <div class="modal-body">
+                        <div>第{{showedPage+1}}頁</div>
+                        <div class="card-holder">
+                            <img class="card" v-for="(card, index) in showedCard" :src=`./image/${card}.png`> </div>
+                                <div class="page-button-holder">
+                            <button type="button" class="btn btn-primary btn-sm page-btn"
+                                v-on:click="()=>{this.showedPage=0}">1</button>
+                            <button type="button" class="btn btn-primary btn-sm page-btn"
+                                v-on:click="()=>{this.showedPage=1}">2</button>
+                            <button type="button" class="btn btn-primary btn-sm page-btn"
+                                v-on:click="()=>{this.showedPage=2}">3</button>
+                            <button type="button" class="btn btn-primary btn-sm page-btn"
+                                v-on:click="()=>{this.showedPage=3}">4</button>
+                            <button type="button" class="btn btn-primary btn-sm page-btn"
+                                v-on:click="()=>{this.showedPage=4}">5</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
         </div>
 
     </div>
@@ -68,13 +194,22 @@
                 realCards: [],
                 isLoading: true,
                 maxX: 40,
-                maxY: 15
+                maxY: 15,
+                showedPage: 0,
+                showedCard: [],
+                maxLength: "",
+                maxSingleJump: "",
+                maxDoubleJump: "",
+                filterStat: {},
+                isFiltered: false,
+
             },
             methods: {
                 getData: function () {
                     let self = this;
-                    self.isLoading = true
-                    self.isLoading = false
+                    self.showedPage = 0;
+                    self.isLoading = true;
+                    self.isLoading = false;
 
                     var roadContainer = d3.select('#road-holder')
                     roadContainer.selectAll('*').remove();
@@ -83,7 +218,7 @@
                         .then(res => {
                             console.log(res);
                             self.multiRoads = res.multiRoad.roads;
-                            self.realCards = res.realCards;
+                            self.realCards = res.realCard;
                             self.maxX = res.multiRoad.maxX;
                             self.maxY = res.multiRoad.maxY + 3;
                         })
@@ -101,8 +236,8 @@
                     var data = rc.result;
                     var static = rc.static;
 
-                    const xAxisRange = [...Array(self.maxX).keys()];
-                    const yAxisRange = [...Array(self.maxY).keys()];
+                    // const xAxisRange = [...Array(self.maxX).keys()];
+                    // const yAxisRange = [...Array(self.maxY).keys()];
 
                     const margin = {
                         top: 20,
@@ -170,16 +305,101 @@
                     `
                     var body = document.getElementById('road-holder');
                     body.appendChild(div);
+
+                    var br = document.createElement('br');
+                    body.appendChild(br);
+                },
+                showModal: function () {
+                    let self = this;
+                    var modal = new bootstrap.Modal(document.getElementById('model-test'), {
+                        keyboard: true
+                    });
+                    self.showedPage = 0;
+                    self.showedCard = self.realCards.slice(
+                        0, 100
+                    );
+                    modal.show();
+                },
+                filterSets: function () {
+                    let self = this;
+
+                    self.filterStat = {};
+
+                    var roadContainer = d3.select('#road-holder');
+                    roadContainer.selectAll('*').remove();
+
+                    var maxLen = self.maxLength !== "" ? Number(self.maxLength) : null;
+                    var maxSingle = self.maxSingleJump !== "" ? Number(self.maxSingleJump) : null;
+                    var maxDouble = self.maxDoubleJump !== "" ? Number(self.maxDoubleJump) : null;
+
+                    var result = [];
+
+                    var goodSets = 0;
+                    var badSets = 0;
+
+                    for (var temp in self.multiRoads) {
+                        var rec = self.multiRoads[temp]["maps"]["static"];
+
+                        var satisfedOne = true;
+                        var satisfedTwo = true;
+                        var satisfedThree = true;
+
+                        if (maxLen) {
+                            satisfedOne = rec.maxLWE <= maxLen;
+                        }
+
+                        if (maxSingle) {
+                            satisfedTwo = rec.maxSingleJump <= maxSingle;
+                        }
+
+                        if (maxDouble) {
+                            satisfedThree = rec.maxDoubleJump <= maxDouble;
+                        }
+
+                        if (satisfedOne && satisfedTwo && satisfedThree) {
+                            goodSets += 1;
+
+                            result.push(temp);
+
+                            self.plotRoad(self.multiRoads[temp]["maps"], temp);
+                        } else {
+                            badSets += 1;
+                        }
+                    }
+
+                    var final = {
+                        goodNumber: goodSets,
+                        badNumber: badSets,
+                        goodSets: result
+                    }
+
+                    self.filterStat = final;
+                    console.log(self.filterStat);
+
+                    self.isFiltered = true;
+
+                },
+                recover: function () {
+                    let self = this;
+                    var roadContainer = d3.select('#road-holder');
+                    roadContainer.selectAll('*').remove();
+
+                    for (var temp in self.multiRoads) {
+                        self.plotRoad(self.multiRoads[temp]['maps'], temp)
+                    };
+
+                    self.filterStat = {};
+                    self.isFiltered = false;
                 }
 
             },
             computed: {
-                tableGrid: function() {
+                tableGrid: function () {
                     let self = this;
 
                     var tableGrid = []
-                    for (var i =1; i < self.maxX+1; i++){
-                        for (var j = 1; j < self.maxY; j++){
+                    for (var i = 1; i < self.maxX + 1; i++) {
+                        for (var j = 1; j < self.maxY; j++) {
                             tableGrid.push({
                                 x: i,
                                 y: j
@@ -194,12 +414,19 @@
 
             },
             watch: {
-                multiRoads: function(newVal, oldVal) {
+                multiRoads: function (newVal, oldVal) {
                     let self = this;
-                    for (var temp in self.multiRoads){
+                    for (var temp in self.multiRoads) {
                         self.plotRoad(self.multiRoads[temp]['maps'], temp)
                     }
-                }
+                },
+                showedPage: function (page) {
+                    let self = this;
+
+                    var cards = self.realCards.slice(page * 100, page * 100 + 100);
+
+                    this.showedCard = cards;
+                },
 
             }
 
