@@ -17,6 +17,21 @@
 
     <title>BJL模擬Ver2</title>
     <style>
+
+        svg {
+            /* float: left; */
+            display: inline-block;
+        }
+
+        .static-div {
+            width: 200px;
+            display: inline-block;
+            vertical-align: middle;
+            /* float: right; */
+            
+        }
+
+
     </style>
 
 </head>
@@ -36,7 +51,7 @@
         <div v-if="!isLoading" id="road-container">
 
             <div class="row">
-                <div class="col-7" id="road-holder" style="margin-bottom: 20px;"></div>
+                <div class="col-7" id="road-holder" style="margin-bottom: 20px; width: 100%; min-width: 1800px;"></div>
             </div>
 
         </div>
@@ -66,6 +81,7 @@
 
                     eel.getMultiRoad()()
                         .then(res => {
+                            console.log(res);
                             self.multiRoads = res.multiRoad.roads;
                             self.realCards = res.realCards;
                             self.maxX = res.multiRoad.maxX;
@@ -81,6 +97,9 @@
                 },
                 plotRoad: function (rc, svgNumber) {
                     let self = this;
+
+                    var data = rc.result;
+                    var static = rc.static;
 
                     const xAxisRange = [...Array(self.maxX).keys()];
                     const yAxisRange = [...Array(self.maxY).keys()];
@@ -112,16 +131,13 @@
 
                     } else {
                         var svg = d3.select(`road${svgNumber}`);
-                        
                     }
-
-                    svg.selectAll("*").remove();
 
                     self.chart = svg.append('g')
                         .attr('transform', `translate(${margin.left}, 0)`);
 
                     const roads = svg.selectAll('roadCell')
-                        .data(rc)
+                        .data(data)
                         .enter().append('circle')
                         .attr('cx', d => (d.x + 1) * circleR * 2)
                         .attr('cy', d => (d.y + 1) * circleR * 2)
@@ -142,7 +158,18 @@
                         .style('stroke', 'black')
                         .style('stroke-widht', '1px')
 
-
+                    var div = document.createElement('div');
+                    div.id = `static-${svgNumber}`
+                    div.classList = 'static-div'
+                    div.innerHTML = `
+                        <p><strong>切牌位置: ${svgNumber}</strong></p>
+                        <p>總路數: ${static.maxX}</p>
+                        <p>最高長龍: ${static.maxLWE}</p>
+                        <p>最長單跳: ${static.maxSingleJump}</p>
+                        <p>最長雙跳: ${static.maxDoubleJump}</p>
+                    `
+                    var body = document.getElementById('road-holder');
+                    body.appendChild(div);
                 }
 
             },
@@ -170,7 +197,7 @@
                 multiRoads: function(newVal, oldVal) {
                     let self = this;
                     for (var temp in self.multiRoads){
-                        self.plotRoad(self.multiRoads[temp]['maps']['result'], temp)
+                        self.plotRoad(self.multiRoads[temp]['maps'], temp)
                     }
                 }
 
