@@ -73,22 +73,8 @@
         <div class="row" style="margin: 20px 0">
 
             <div class="col-12">
-                <div class="row">
 
-                    <div class="col-2">
-                        <button id="starts" class="btn btn-primary" v-on:click="getData"
-                            style="width: 100%">模擬大路</button>
-                    </div>
-
-                    <div class="col-2">
-                        <button id="showCardbtn" class="btn btn-primary" v-on:click="showModal" style="width: 100%"
-                            v-if="!isLoading">顯示牌組</button>
-                    </div>
-
-                </div>
-
-                <!-- 篩選條件列 -->
-                <div class="row" v-if="!isLoading" style="margin: 20px 0">
+                <div class="row" style="margin: 20px 0">
 
                     <div class="col-2" style="padding-left: 0">
                         <div class="input-group">
@@ -104,7 +90,7 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text">最長單跳</span>
                             </div>
-                            <input type="text" placeholder="default: 4" class="form-control" v-model="maxSingleJump">
+                            <input type="text" class="form-control" v-model="maxSingleJump">
                         </div>
                     </div>
 
@@ -113,27 +99,32 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text">最長雙跳</span>
                             </div>
-                            <input type="text" placeholder="default: 4" class="form-control" v-model="maxDoubleJump">
+                            <input type="text" class="form-control" v-model="maxDoubleJump">
                         </div>
                     </div>
 
                     <div class="col-2">
-                        <button id="showCardbtn" class="btn btn-primary" v-on:click="filterSets"
-                            style="width: 100%">篩選牌組</button>
-                    </div>
-
-                    <div class="col-2">
-                        <button id="showCardbtn" class="btn btn-primary" v-on:click="recover" style="width: 100%"
-                            v-if="isFiltered">復原篩選</button>
+                        <button id="starts" class="btn btn-primary" v-on:click="getData"
+                            style="width: 100%">模擬大路</button>
                     </div>
 
                 </div>
 
                 <hr>
 
+                <div v-if="isDone" class="row">
+                    <div class="btn-group" role='group' aria-label="setSelector">
+                        <button type="button" class='btn btn-primary' v-for="(data, index) in multiRoads"
+                            v-on:click="changeSets(index)">第{{Number(index.slice(1)) + 1}}牌組
+                            ({{ (data.rate*100).toFixed(2) }}%)</button>
+
+                    </div>
+                </div>
+
                 <div class="row" v-if="isFiltered" style="margin: 20px 0">
 
                     <div>
+                        <h2><strong>第 {{ Number(showedSets.slice(1))+1 }} 副牌</strong></h2>
                         <p><strong>符合條件數目: </strong> {{filterStat.goodNumber}}</p>
                         <p><strong>符合切牌位置: </strong>
                             <a v-for="(sets, index) in filterStat.goodSets" :href="`#road${sets}`">{{sets}}, </a>
@@ -142,7 +133,14 @@
                     </div>
 
                 </div>
+                <div class="row">
 
+                    <div class="col-2">
+                        <button id="showCardbtn" class="btn btn-primary" v-on:click="showModal" style="width: 100%"
+                            v-if="isFiltered">顯示牌組</button>
+                    </div>
+
+                </div>
 
             </div>
 
@@ -155,6 +153,8 @@
             </div>
 
         </div>
+        
+        <h2 v-if="!isLoading & !isDone" class="display-4">牌組計算中....</h2>
 
         <div class="modal" id="model-test">
             <div class="model-xl">
@@ -191,7 +191,9 @@
             el: '#app',
             data: {
                 multiRoads: {},
+                showedSets: 'A0',
                 realCards: [],
+                currRoad: {},
                 isLoading: true,
                 maxX: 40,
                 maxY: 15,
@@ -202,32 +204,40 @@
                 maxDoubleJump: "",
                 filterStat: {},
                 isFiltered: false,
+                isDone: false
 
             },
             methods: {
                 getData: function () {
                     let self = this;
-                    self.showedPage = 0;
                     self.isLoading = true;
+                    self.isFiltered = false;
+                    self.showedPage = 0;
+                    self.showedSets = 'A0';
                     self.isLoading = false;
+                    self.isDone = false;
+
+                    var maxLen = self.maxLength !== "" ? Number(self.maxLength) : null;
+                    var maxSingle = self.maxSingleJump !== "" ? Number(self.maxSingleJump) : null;
+                    var maxDouble = self.maxDoubleJump !== "" ? Number(self.maxDoubleJump) : null;
 
                     var roadContainer = d3.select('#road-holder')
                     roadContainer.selectAll('*').remove();
 
-                    eel.getMultiRoad()()
+                    eel.getMultiRoad(n = 10, longLen = maxLen, maxSingleLen = maxSingle, maxDoubleLen =
+                            maxDouble, okRate = 0.5)()
                         .then(res => {
                             console.log(res);
-                            self.multiRoads = res.multiRoad.roads;
-                            self.realCards = res.realCard;
-                            self.maxX = res.multiRoad.maxX;
-                            self.maxY = res.multiRoad.maxY + 3;
+                            self.multiRoads = res.multiRoad;
                         })
                         .catch(error => {
                             self.isLoading = true
                             console.log(error)
                         })
                         .finally(() => {
-                            self.isLoading = false
+                            // self.isLoading = false
+                            self.isFiltered = true;
+                            self.isDone = true;
                         })
                 },
                 plotRoad: function (rc, svgNumber) {
@@ -235,9 +245,6 @@
 
                     var data = rc.result;
                     var static = rc.static;
-
-                    // const xAxisRange = [...Array(self.maxX).keys()];
-                    // const yAxisRange = [...Array(self.maxY).keys()];
 
                     const margin = {
                         top: 20,
@@ -320,76 +327,10 @@
                     );
                     modal.show();
                 },
-                filterSets: function () {
+                changeSets: function (val) {
                     let self = this;
-
-                    self.filterStat = {};
-
-                    var roadContainer = d3.select('#road-holder');
-                    roadContainer.selectAll('*').remove();
-
-                    var maxLen = self.maxLength !== "" ? Number(self.maxLength) : null;
-                    var maxSingle = self.maxSingleJump !== "" ? Number(self.maxSingleJump) : null;
-                    var maxDouble = self.maxDoubleJump !== "" ? Number(self.maxDoubleJump) : null;
-
-                    var result = [];
-
-                    var goodSets = 0;
-                    var badSets = 0;
-
-                    for (var temp in self.multiRoads) {
-                        var rec = self.multiRoads[temp]["maps"]["static"];
-
-                        var satisfedOne = true;
-                        var satisfedTwo = true;
-                        var satisfedThree = true;
-
-                        if (maxLen) {
-                            satisfedOne = rec.maxLWE <= maxLen;
-                        }
-
-                        if (maxSingle) {
-                            satisfedTwo = rec.maxSingleJump <= maxSingle;
-                        }
-
-                        if (maxDouble) {
-                            satisfedThree = rec.maxDoubleJump <= maxDouble;
-                        }
-
-                        if (satisfedOne && satisfedTwo && satisfedThree) {
-                            goodSets += 1;
-
-                            result.push(temp);
-
-                            self.plotRoad(self.multiRoads[temp]["maps"], temp);
-                        } else {
-                            badSets += 1;
-                        }
-                    }
-
-                    var final = {
-                        goodNumber: goodSets,
-                        badNumber: badSets,
-                        goodSets: result
-                    }
-
-                    self.filterStat = final;
-                    console.log(self.filterStat);
-
-                    self.isFiltered = true;
-
-                },
-                recover: function () {
-                    let self = this;
-                    var roadContainer = d3.select('#road-holder');
-                    roadContainer.selectAll('*').remove();
-
-                    for (var temp in self.multiRoads) {
-                        self.plotRoad(self.multiRoads[temp]['maps'], temp)
-                    };
-
-                    self.filterStat = {};
-                    self.isFiltered = false;
+                    console.log(val);
+                    self.showedSets = val;
                 }
 
             },
@@ -408,18 +349,34 @@
                     }
 
                     return tableGrid
-                }
+                },
+
             },
             mounted: function () {
 
             },
             watch: {
-                multiRoads: function (newVal, oldVal) {
+
+                showedSets: function (val) {
                     let self = this;
-                    for (var temp in self.multiRoads) {
-                        self.plotRoad(self.multiRoads[temp]['maps'], temp)
+
+                    var roadContainer = d3.select('#road-holder');
+                    roadContainer.selectAll('*').remove();
+
+                    self.realCards = self.multiRoads[val].realCard;
+                    self.currRoad = self.multiRoads[val].roads;
+                    self.maxX = self.multiRoads[val].maxX;
+                    self.maxY = self.multiRoads[val].maxY + 3;
+                    self.filterStat = {
+                        goodNumber: self.multiRoads[val].gCount,
+                        goodRate: self.multiRoads[val].rate,
+                        goodSets: self.multiRoads[val].matched,
+                    }
+                    for (var temp in self.currRoad) {
+                        self.plotRoad(self.currRoad[temp]['maps'], temp)
                     }
                 },
+
                 showedPage: function (page) {
                     let self = this;
 
@@ -427,6 +384,23 @@
 
                     this.showedCard = cards;
                 },
+
+                multiRoads: function (mroads) {
+                    let self = this;
+                    self.realCards = mroads[self.showedSets].realCard;
+                    self.currRoad = mroads[self.showedSets].roads;
+                    self.maxX = mroads[self.showedSets].maxX;
+                    self.maxY = mroads[self.showedSets].maxY + 3;
+                    self.filterStat = {
+                        goodNumber: mroads[self.showedSets].gCount,
+                        goodRate: mroads[self.showedSets].rate,
+                        goodSets: mroads[self.showedSets].matched,
+                    }
+                    for (var temp in self.currRoad) {
+                        self.plotRoad(self.currRoad[temp]['maps'], temp)
+                    }
+                },
+
 
             }
 

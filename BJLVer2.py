@@ -7,8 +7,8 @@ class BJLVer2:
 
     all_cards = [ '-'.join(ele) for ele in product(colors, numbers) ]*8
 
-    def __init__(self):
-        self.shuffled = self.shuffledCards()
+    # def __init__(self):
+        # self.shuffled = self.shuffledCards()
 
     def shuffledCards(self):
         """
@@ -17,11 +17,12 @@ class BJLVer2:
         shuffledCards = random.sample(self.all_cards, 416)
         return shuffledCards
     
-    def cutCards(self, position):
+    def cutCards(self, shuffled, position):
         """
         切牌功能
         """
-        return self.shuffled[position:] + self.shuffled[:position]
+        return shuffled[position:] + shuffled[:position]
+        # return self.shuffled[position:] + self.shuffled[:position]
 
     def getNumber(self, card):
         """
@@ -142,7 +143,6 @@ class BJLVer2:
             try:
                 winner, playerCards, bankerCards, backupCards = self.getWinner(playerCards, bankerCards, backupCards)
             except:
-                print(n)
                 print("cards: ", cards)
                 print("cardSets: ", cardSets)
                 print("playerCard: ", playerCards)
@@ -269,27 +269,74 @@ class BJLVer2:
             }
 
         
-    def roadLoop(self):
+    def roadLoop(self, longLen=None, maxSingleLen=None, maxDoubleLen=None):
         
+        # 洗牌
+        shuffled = self.shuffledCards()
+
         # 迴圈跑切排算路
         result = {'roads': {}}
         maxX = 1
         maxY = 1
 
+        matched = []
+
         for pos in range(190, 241):
             
-            cuttedCard = self.cutCards(pos)
+            cuttedCard = self.cutCards(shuffled, pos)
             roads = self.getRoad(cuttedCard)
             maps = self.getStatic(roads)
             result['roads'][str(pos)] = {'road': roads, 'maps':maps}
 
             maxX = maps['static']['maxX'] if maps['static']['maxX'] > maxX else maxX
             maxY = maps['static']['maxY'] if maps['static']['maxY'] > maxY else maxY
+
+            if longLen:
+                longCheck = maps['static']['maxLWE'] <= longLen
+            else:
+                longCheck = True
+            
+            if maxSingleLen:
+                singleCheck = maps['static']['maxSingleJump'] <= maxSingleLen 
+            else:
+                singleCheck = True
+            
+            if maxDoubleLen:
+                doubleCheck = maps['static']['maxSingleJump'] <= maxDoubleLen
+            else:
+                doubleCheck = True
+
+            if longCheck and singleCheck and doubleCheck:
+                matched.append(pos)
         
+
         result['maxX'] = maxX
         result['maxY'] = maxY
+        result['rate'] = len(matched)/51
+        result['gCount'] = len(matched)
+        result['matched'] = matched
+        result['realCard'] = shuffled
 
         return result
+    
+    def getMultiSets(self, n=10, longLen=None, maxSingleLen=None, maxDoubleLen=None, okRate=0.5):
+        """
+        迴圈取得 10 副可用牌組的功能
+        n: 要取得幾副牌
+        longLen: 長龍最高長度
+        maxSingleLen: 單跳連續次數
+        maxDoubleLen: 雙跳連續次數
+        """
+        allSets = {}
+        t = 0
+        while t < 10:
+            roadData = self.roadLoop(longLen=longLen, maxSingleLen=maxSingleLen, maxDoubleLen=maxDoubleLen)
+            if roadData['rate'] >= okRate:
+                allSets['A' + str(t)] = roadData
+                t += 1
+            
+        return allSets
+
 
 # bjl = BJLVer2()
 # bjl.getRoad(bjl.shuffled)
