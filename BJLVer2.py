@@ -2,6 +2,11 @@ import random
 from itertools import product
 
 class BJLVer2:
+    """
+    version 2: 
+        設定最長長龍, 最長單跳次數, 最長雙跳次數, 切牌開始位置, 切牌結束位置,
+        生成10副可以符合篩選條件的牌組。
+    """
     colors = [ str(ele) for ele in range(1, 5)]
     numbers = [ str(ele) for ele in range(1, 14)]
 

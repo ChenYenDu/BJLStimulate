@@ -25,4 +25,4 @@ def getRoad(cut ,maxLength, singleJumpTimes, singleJumpMax, doubleJumpTimes, dou
         }
 
 eel.init('web', allowed_extensions=['.js', '.html', '.css'])
-eel.start('index.html')
+eel.start('version_1.html')

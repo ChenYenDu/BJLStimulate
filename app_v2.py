@@ -16,4 +16,4 @@ def getMultiRoad(n=10, longLen=None, maxSingleLen=None, maxDoubleLen=None, okRat
     return {'multiRoad': multiRoad}
 
 eel.init('web', allowed_extensions=['.js', '.html', '.css'])
-eel.start('ver2.html')
+eel.start('version_2.html')

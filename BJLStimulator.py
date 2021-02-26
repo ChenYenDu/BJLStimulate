@@ -2,6 +2,9 @@ import random
 import math
 
 class ReverseBJL:
+    """
+    version1: 透過設定 最長長龍, 最長單跳長度, 最長雙跳長度, 生成符合條件的牌組
+    """
     
     def __init__(self):
         pass
@@ -91,49 +94,12 @@ class ReverseBJL:
                 betweenLists += temp
 
             # 最終結果
-            # numRounds = [random.randint(1, maxLength) for _ in range(25)]
-            # numRounds = [random.choices(list(range(1, maxLength+1)), self.longCountDistribute(maxLength))[0] for _ in range(30)   ]
             numRounds = frontLists + betweenLists + [random.randint(1, maxLength) for _ in range(backLen)]
             
         else:
             numRounds = [random.randint(1, maxLength) for _ in range(25)]
 
-        """
-        # 全部可取用index
-        allRange = list(range(30-max([singleJumpMax, doubleJumpMax])))
 
-        # 嵌入單跳
-        for sAdd in range(singleJumpTimes):
-            tempPos = random.choice(allRange)
-            tempLen = random.randint(4, singleJumpMax)
-            if numRounds[tempPos-1] == 1:
-                numRounds[tempPos-1] = random.randint(2, maxLength)
-            if numRounds[(tempPos+tempLen)] == 1:
-                numRounds[(tempPos+tempLen)] = random.randint(2,maxLength)
-            allRange = list(filter(lambda ele: ele not in range(tempPos-2, tempPos+tempLen+2), allRange) )
-            numRounds = numRounds[:tempPos] + [1]*tempLen + numRounds[(tempPos+tempLen):]
-        
-        
-        # 嵌入雙跳
-        for dAdd in range(doubleJumpTimes):
-            tempPos = random.choice(allRange)
-            tempLen = random.randint(4, doubleJumpMax)
-            if numRounds[tempPos-1] == 1:
-                numRounds[tempPos-1] = numRounds[(tempPos+tempLen)] = random.choice(
-                    list(
-                        filter(lambda ele: ele != 2, list(range(1, maxLength+1)))
-                    )
-                )
-            if numRounds[(tempPos+tempLen)] == 2:
-                numRounds[(tempPos+tempLen)] = random.choice(
-                    list(
-                        filter(lambda ele: ele != 2, list(range(1, maxLength+1)))
-                    )
-                )
-            allRange = list(filter(lambda ele: ele not in range(tempPos-2, tempPos+tempLen+2), allRange) )
-            numRounds = numRounds[:tempPos] + [2]*tempLen + numRounds[(tempPos+tempLen):]
-
-        """
         # 決定第一長龍的贏家 
         currentWinner = random.choice(['庄', '閑'])
 
